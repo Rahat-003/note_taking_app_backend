@@ -1,0 +1,9 @@
+[
+  { "key": "notes.manage_own", "description": "Create, view, update and delete own notes" },
+  { "key": "notes.read_all", "description": "View everyone's notes" },
+  { "key": "posts.create", "description": "Write posts" },
+  { "key": "posts.delete_any", "description": "Delete anyone's posts" },
+  { "key": "users.read", "description": "List and view users, view users grouped by interest" },
+  { "key": "users.manage", "description": "Create, update and delete users" },
+  { "key": "roles.manage", "description": "Create roles and assign permissions to them" }
+]

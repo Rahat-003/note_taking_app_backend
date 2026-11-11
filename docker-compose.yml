@@ -1,0 +1,41 @@
+name: care_guide_bd
+
+services:
+  mongo:
+    image: mongo:8
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - "27018:27017" # host 27018 avoids clashing with a locally installed mongod
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      PORT: 3000
+      MONGO_URI: mongodb://mongo:27017/secure_notes
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in backend/.env (see .env.example)}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in backend/.env (used by bootstrap/user.json)}
+    ports:
+      - "${APP_PORT:-3000}:3000"
+
+  frontend:
+    build: ../frontend # nginx serves the React build and proxies /api to backend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+
+volumes:
+  mongo-data:
