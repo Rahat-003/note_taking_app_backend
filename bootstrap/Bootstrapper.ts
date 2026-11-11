@@ -73,7 +73,7 @@ export class Bootstrapper {
         name: Bootstrapper.interpolate(entry.name),
         email,
         password: Bootstrapper.interpolate(entry.password), // hashed by the pre-save hook
-        role: role._id,
+        role_id: role._id,
       });
       created += 1;
     }

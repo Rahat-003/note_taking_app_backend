@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { inject, injectable } from 'tsyringe';
 import { Tokens } from '../common/Tokens';
 import type { CreateRoleDto } from '../dto/role/CreateRoleDto';
+import type { SetGrantActiveDto } from '../dto/role/SetGrantActiveDto';
 import type { UpdateRoleDto } from '../dto/role/UpdateRoleDto';
 import type { RoleService } from '../services/RoleService';
 import { BaseController } from './BaseController';
@@ -26,6 +27,11 @@ export class RoleController extends BaseController {
 
   async update(req: Request, res: Response): Promise<void> {
     res.json(await this.roles.update(this.principal(req), this.param(req, 'id'), this.body<UpdateRoleDto>(req)));
+  }
+
+  async setGrantActive(req: Request, res: Response): Promise<void> {
+    const dto = this.body<SetGrantActiveDto>(req);
+    res.json(await this.roles.setGrantActive(this.principal(req), this.param(req, 'id'), this.param(req, 'permission_id'), dto));
   }
 
   async delete(req: Request, res: Response): Promise<void> {

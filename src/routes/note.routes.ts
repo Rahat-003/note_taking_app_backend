@@ -14,7 +14,7 @@ export function noteRoutes(): Router {
   const router = Router();
   router.use(container.resolve(AuthenticationMiddleware).handle);
 
-  // The list checks notes.manage_own or notes.read_all itself, depending on ?all / ?owner.
+  // The list checks notes.manage_own or notes.read_all itself, depending on ?all / ?user_id.
   router.get('/', handle((req, res) => controller.list(req, res)));
   router.post(
     '/',

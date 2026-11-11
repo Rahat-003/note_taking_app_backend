@@ -42,7 +42,7 @@ export class UserAggregations {
 
   /**
    * Scenario 2: all posts of one user via a single pipeline with $lookup.
-   * $match on _id uses the _id index; both lookups use { author: 1, _id: -1 } on posts.
+   * $match on _id uses the _id index; both lookups use { user_id: 1, _id: -1 } on posts.
    */
   static userPosts(userId: Types.ObjectId, skip: number, limit: number): PipelineStage[] {
     return [
@@ -52,7 +52,7 @@ export class UserAggregations {
         $lookup: {
           from: 'posts',
           localField: '_id',
-          foreignField: 'author',
+          foreignField: 'user_id',
           as: 'posts',
           pipeline: [
             { $sort: { _id: -1 } },
@@ -66,7 +66,7 @@ export class UserAggregations {
         $lookup: {
           from: 'posts',
           localField: '_id',
-          foreignField: 'author',
+          foreignField: 'user_id',
           as: 'total',
           pipeline: [{ $count: 'count' }],
         },

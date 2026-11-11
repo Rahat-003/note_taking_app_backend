@@ -5,6 +5,8 @@ import type { PermissionEntity } from '../domain/Permission';
 export interface PermissionRepository {
   /** Sorted by the { key: 1 } unique index. */
   findAll(page: PageRequest): Promise<Page<PermissionEntity>>;
+  /** { key: 1 } unique index. */
+  findByKeys(keys: readonly string[]): Promise<PermissionEntity[]>;
   /** Upserts by key ({ key: 1 }), keeping descriptions in sync. */
   upsertAll(permissions: ReadonlyArray<{ key: string; description: string }>): Promise<void>;
 }

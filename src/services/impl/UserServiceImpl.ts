@@ -49,21 +49,21 @@ export class UserServiceImpl implements UserService {
   }
 
   async create(principal: Principal, dto: CreateUserDto): Promise<UserWithRole> {
-    const role = await this.resolveAssignableRole(principal, dto.role);
+    const role = await this.resolveAssignableRole(principal, dto.role_id);
     const user = await this.users.create({
       name: dto.name,
       email: dto.email,
       password: dto.password,
       interests: dto.interests,
-      role: role._id,
+      role_id: role._id,
     });
     return this.users.withRole(user);
   }
 
   async update(principal: Principal, userId: string, dto: UpdateUserDto): Promise<UserWithRole> {
     const user = await this.loadManageableUser(principal, userId);
-    const { role, ...fields } = dto;
-    if (role) user.role = (await this.resolveAssignableRole(principal, role))._id;
+    const { role_id: roleId, ...fields } = dto;
+    if (roleId) user.role_id = (await this.resolveAssignableRole(principal, roleId))._id;
     user.set(fields);
     await this.users.save(user);
     return this.users.withRole(user);
@@ -72,8 +72,8 @@ export class UserServiceImpl implements UserService {
   async delete(principal: Principal, userId: string): Promise<void> {
     const user = await this.loadManageableUser(principal, userId);
     await this.users.deleteById(user._id);
-    // Cascade: { owner: 1, _id: -1 } and { author: 1, _id: -1 } serve these filters.
-    await Promise.all([this.notes.deleteByOwner(user._id), this.posts.deleteByAuthor(user._id)]);
+    // Cascade: { user_id: 1, _id: -1 } on notes and on posts serve these filters.
+    await Promise.all([this.notes.deleteByUser(user._id), this.posts.deleteByUser(user._id)]);
   }
 
   /** The role must exist and grant nothing the acting user doesn't hold (no privilege escalation). */
@@ -96,7 +96,7 @@ export class UserServiceImpl implements UserService {
     const user = await this.users.findById(id);
     if (!user) throw new NotFoundException('User not found');
     principal.assertHolds(
-      await this.authorization.getPermissions(user.role),
+      await this.authorization.getPermissions(user.role_id),
       'You cannot manage a user with more permissions than you',
     );
     return user;

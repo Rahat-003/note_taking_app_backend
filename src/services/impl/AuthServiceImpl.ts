@@ -26,7 +26,7 @@ export class AuthServiceImpl implements AuthService {
     // Self-registered accounts always get the default role; the request cannot choose one.
     const role = await this.roles.findByName(RoleName.DEFAULT);
     if (!role) throw new Error(`Role "${RoleName.DEFAULT}" is missing; run npm run bootstrap`);
-    const user = await this.users.create({ name: dto.name, email: dto.email, password: dto.password, role: role._id });
+    const user = await this.users.create({ name: dto.name, email: dto.email, password: dto.password, role_id: role._id });
     return this.authResult(user);
   }
 

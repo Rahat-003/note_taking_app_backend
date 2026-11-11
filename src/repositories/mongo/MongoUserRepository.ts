@@ -28,7 +28,7 @@ export class MongoUserRepository implements UserRepository {
   }
 
   async existsByRole(roleId: Types.ObjectId): Promise<boolean> {
-    return Boolean(await UserModel.exists({ role: roleId }));
+    return Boolean(await UserModel.exists({ role_id: roleId }));
   }
 
   async findAll(page: PageRequest): Promise<Page<UserView>> {

@@ -1,23 +1,33 @@
 import { Schema, Types, model } from 'mongoose';
 
-// Join collection: which permissions a role grants. `permission` holds the permission's
-// immutable unique key, so a role's permissions are read straight from this index.
+// Join collection: which permissions a role grants (role_id -> roles._id, permission_id -> permissions._id).
+// Only grants with isActive: true count; an inactive grant stays on the role but gives no access.
 export interface RolePermissionEntity {
   _id: Types.ObjectId;
-  role: Types.ObjectId;
-  permission: string;
+  role_id: Types.ObjectId;
+  permission_id: Types.ObjectId;
+  isActive: boolean;
+}
+
+/** A role's grant as returned by the API: the permission's id and key, and whether it is active. */
+export interface RoleGrant {
+  permission_id: Types.ObjectId;
+  key: string;
+  isActive: boolean;
 }
 
 const rolePermissionSchema = new Schema<RolePermissionEntity>(
   {
-    role: { type: Schema.Types.ObjectId, ref: 'Role', required: true },
-    permission: { type: String, required: true },
+    role_id: { type: Schema.Types.ObjectId, ref: 'Role', required: true },
+    permission_id: { type: Schema.Types.ObjectId, ref: 'Permission', required: true },
+    isActive: { type: Boolean, required: true, default: true },
   },
   { versionKey: false, collection: 'role_permissions' },
 );
 
-// Per-request permission load: find({ role }, { _id: 0, permission: 1 }) is a covered query.
-// Also: no duplicate grants, the $lookup in the role list, and deleteMany({ role }) on role delete.
-rolePermissionSchema.index({ role: 1, permission: 1 }, { unique: true });
+// Per-request permission load (match on role_id, then $lookup into permissions by _id), no duplicate
+// grants, the toggle endpoint's { role_id, permission_id } update, the $lookup in the role list, and
+// deleteMany({ role_id }) on role delete.
+rolePermissionSchema.index({ role_id: 1, permission_id: 1 }, { unique: true });
 
 export const RolePermissionModel = model<RolePermissionEntity>('RolePermission', rolePermissionSchema);

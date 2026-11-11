@@ -5,7 +5,8 @@ import { PageRequest } from '../../common/pagination/PageRequest';
 import { type PostDocument, PostModel, type PostView } from '../../domain/Post';
 import type { NewPost, PostRepository } from '../PostRepository';
 
-const AUTHOR_FIELDS = 'name';
+// The post's `user` virtual (user_id -> users) is populated with these fields.
+const USER_FIELDS = 'name';
 
 @injectable()
 export class MongoPostRepository implements PostRepository {
@@ -15,7 +16,7 @@ export class MongoPostRepository implements PostRepository {
         .sort({ _id: -1 })
         .skip(page.skip)
         .limit(page.limit)
-        .populate('author', AUTHOR_FIELDS)
+        .populate('user', USER_FIELDS)
         .lean<PostView[]>()
         .exec(),
       PostModel.estimatedDocumentCount().exec(),
@@ -24,19 +25,19 @@ export class MongoPostRepository implements PostRepository {
   }
 
   findById(id: Types.ObjectId): Promise<PostView | null> {
-    return PostModel.findById(id).populate('author', AUTHOR_FIELDS).lean<PostView>().exec();
+    return PostModel.findById(id).populate('user', USER_FIELDS).lean<PostView>().exec();
   }
 
   create(post: NewPost): Promise<PostDocument> {
     return PostModel.create(post);
   }
 
-  async delete(id: Types.ObjectId, author?: Types.ObjectId): Promise<boolean> {
-    const { deletedCount } = await PostModel.deleteOne(author ? { _id: id, author } : { _id: id }).exec();
+  async delete(id: Types.ObjectId, userId?: Types.ObjectId): Promise<boolean> {
+    const { deletedCount } = await PostModel.deleteOne(userId ? { _id: id, user_id: userId } : { _id: id }).exec();
     return deletedCount > 0;
   }
 
-  async deleteByAuthor(authorId: Types.ObjectId): Promise<void> {
-    await PostModel.deleteMany({ author: authorId }).exec();
+  async deleteByUser(userId: Types.ObjectId): Promise<void> {
+    await PostModel.deleteMany({ user_id: userId }).exec();
   }
 }

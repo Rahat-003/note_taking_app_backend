@@ -4,6 +4,7 @@ import { Page } from '../../common/pagination/Page';
 import { PageRequest } from '../../common/pagination/PageRequest';
 import { type RoleEntity, RoleModel, type RoleView } from '../../domain/Role';
 import type { RoleFields, RoleRepository } from '../RoleRepository';
+import { PERMISSION_KEY_LOOKUP } from './MongoRolePermissionRepository';
 
 @injectable()
 export class MongoRoleRepository implements RoleRepository {
@@ -17,12 +18,23 @@ export class MongoRoleRepository implements RoleRepository {
           $lookup: {
             from: 'role_permissions',
             localField: '_id',
-            foreignField: 'role',
-            as: 'permissions',
-            pipeline: [{ $project: { _id: 0, permission: 1 } }],
+            foreignField: 'role_id',
+            as: 'grants',
+            pipeline: [
+              ...PERMISSION_KEY_LOOKUP,
+              { $project: { _id: 0, permission_id: 1, key: '$permissionDoc.key', isActive: 1 } },
+              { $sort: { key: 1 } },
+            ],
           },
         },
-        { $set: { permissions: '$permissions.permission' } },
+        // permissions: keys of the active grants only.
+        {
+          $set: {
+            permissions: {
+              $map: { input: { $filter: { input: '$grants', cond: '$$this.isActive' } }, in: '$$this.key' },
+            },
+          },
+        },
       ]).exec(),
       RoleModel.estimatedDocumentCount().exec(),
     ]);

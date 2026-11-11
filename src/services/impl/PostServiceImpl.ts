@@ -26,12 +26,12 @@ export class PostServiceImpl implements PostService {
   }
 
   create(principal: Principal, dto: CreatePostDto): Promise<PostDocument> {
-    return this.posts.create({ title: dto.title, body: dto.body, author: principal.id });
+    return this.posts.create({ title: dto.title, body: dto.body, user_id: principal.id });
   }
 
   /** Authors can always delete their own posts; posts.delete_any can delete anyone's. */
   async delete(principal: Principal, postId: string): Promise<void> {
-    const author = principal.can(PermissionKey.POSTS_DELETE_ANY) ? undefined : principal.id;
-    if (!(await this.posts.delete(ObjectIds.parse(postId), author))) throw new NotFoundException('Post not found');
+    const userId = principal.can(PermissionKey.POSTS_DELETE_ANY) ? undefined : principal.id;
+    if (!(await this.posts.delete(ObjectIds.parse(postId), userId))) throw new NotFoundException('Post not found');
   }
 }

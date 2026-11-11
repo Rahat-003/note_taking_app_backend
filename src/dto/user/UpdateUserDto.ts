@@ -12,7 +12,7 @@ export class UpdateUserDto {
   password?: string;
 
   @Optional() @IsString()
-  role?: string;
+  role_id?: string;
 
   @Optional() @TrimLowerCaseEach() @IsArray() @ArrayMaxSize(20) @IsString({ each: true }) @Length(1, 50, { each: true })
   interests?: string[];

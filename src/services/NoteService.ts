@@ -8,8 +8,8 @@ import type { Principal } from './Principal';
 export interface NoteListQuery {
   /** Everyone's notes (needs notes.read_all). */
   all: boolean;
-  /** One user's notes (needs notes.read_all). */
-  owner?: unknown;
+  /** One user's notes, ?user_id= (needs notes.read_all). */
+  user_id?: unknown;
 }
 
 export interface NoteService {

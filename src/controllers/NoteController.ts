@@ -12,9 +12,9 @@ export class NoteController extends BaseController {
     super();
   }
 
-  /** GET /api/notes (own), ?owner=<id> (one user's) or ?all=true (everyone's). */
+  /** GET /api/notes (own), ?user_id=<id> (one user's) or ?all=true (everyone's). */
   async list(req: Request, res: Response): Promise<void> {
-    const query = { all: req.query.all === 'true', owner: req.query.owner };
+    const query = { all: req.query.all === 'true', user_id: req.query.user_id };
     res.json(await this.notes.list(this.principal(req), query, this.pageRequest(req)));
   }
 

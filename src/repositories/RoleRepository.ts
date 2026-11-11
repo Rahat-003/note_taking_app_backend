@@ -10,7 +10,7 @@ export interface RoleFields {
 }
 
 export interface RoleRepository {
-  /** Sorted by { name: 1 }, each role with its permission keys via $lookup on { role: 1, permission: 1 }. */
+  /** Sorted by { name: 1 }, each role with its grants via $lookup on { role_id: 1, permission_id: 1 } (and permissions by _id). */
   findAllWithPermissions(page: PageRequest): Promise<Page<RoleView>>;
   /** _id index. */
   findById(id: Types.ObjectId): Promise<RoleEntity | null>;

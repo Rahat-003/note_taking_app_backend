@@ -23,24 +23,24 @@ export class NoteServiceImpl implements NoteService {
   constructor(@inject(Tokens.NoteRepository) private readonly notes: NoteRepository) {}
 
   list(principal: Principal, query: NoteListQuery, page: PageRequest): Promise<Page<NoteView>> {
-    const crossUser = query.all || Boolean(query.owner);
+    const crossUser = query.all || Boolean(query.user_id);
     if (!principal.can(crossUser ? PermissionKey.NOTES_READ_ALL : PermissionKey.NOTES_MANAGE_OWN)) {
       throw new ForbiddenException();
     }
-    if (query.owner) return this.notes.findByOwner(ObjectIds.parse(query.owner), page);
+    if (query.user_id) return this.notes.findByUser(ObjectIds.parse(query.user_id), page);
     if (query.all) return this.notes.findAll(page);
-    return this.notes.findByOwner(principal.id, page);
+    return this.notes.findByUser(principal.id, page);
   }
 
   async get(principal: Principal, noteId: string): Promise<NoteView> {
-    const owner = principal.can(PermissionKey.NOTES_READ_ALL) ? undefined : principal.id;
-    const note = await this.notes.findOne(ObjectIds.parse(noteId), owner);
+    const userId = principal.can(PermissionKey.NOTES_READ_ALL) ? undefined : principal.id;
+    const note = await this.notes.findOne(ObjectIds.parse(noteId), userId);
     if (!note) throw new NotFoundException('Note not found');
     return note;
   }
 
   create(principal: Principal, dto: CreateNoteDto): Promise<NoteDocument> {
-    return this.notes.create({ title: dto.title, content: dto.content, owner: principal.id });
+    return this.notes.create({ title: dto.title, content: dto.content, user_id: principal.id });
   }
 
   async update(principal: Principal, noteId: string, dto: UpdateNoteDto): Promise<NoteDocument> {

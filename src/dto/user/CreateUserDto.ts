@@ -11,9 +11,9 @@ export class CreateUserDto {
   @IsString() @Length(8, 72)
   password!: string;
 
-  /** Role id; defaults to the "user" role. */
+  /** Foreign key to roles._id; defaults to the "user" role. */
   @Optional() @IsString()
-  role?: string;
+  role_id?: string;
 
   @Optional() @TrimLowerCaseEach() @IsArray() @ArrayMaxSize(20) @IsString({ each: true }) @Length(1, 50, { each: true })
   interests?: string[];

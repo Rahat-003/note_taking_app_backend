@@ -5,12 +5,13 @@ import { PageRequest } from '../../common/pagination/PageRequest';
 import { type NoteDocument, NoteModel, type NoteView } from '../../domain/Note';
 import type { NewNote, NoteChanges, NoteRepository } from '../NoteRepository';
 
-const OWNER_FIELDS = 'name email';
+// The note's `user` virtual (user_id -> users) is populated with these fields.
+const USER_FIELDS = 'name email';
 
 @injectable()
 export class MongoNoteRepository implements NoteRepository {
-  async findByOwner(ownerId: Types.ObjectId, page: PageRequest): Promise<Page<NoteView>> {
-    const filter = { owner: ownerId };
+  async findByUser(userId: Types.ObjectId, page: PageRequest): Promise<Page<NoteView>> {
+    const filter = { user_id: userId };
     const [data, total] = await Promise.all([this.findPage(filter, page), NoteModel.countDocuments(filter).exec()]);
     return Page.of(data, total, page);
   }
@@ -20,9 +21,9 @@ export class MongoNoteRepository implements NoteRepository {
     return Page.of(data, total, page);
   }
 
-  findOne(id: Types.ObjectId, owner?: Types.ObjectId): Promise<NoteView | null> {
-    return NoteModel.findOne(owner ? { _id: id, owner } : { _id: id })
-      .populate('owner', OWNER_FIELDS)
+  findOne(id: Types.ObjectId, userId?: Types.ObjectId): Promise<NoteView | null> {
+    return NoteModel.findOne(userId ? { _id: id, user_id: userId } : { _id: id })
+      .populate('user', USER_FIELDS)
       .lean<NoteView>()
       .exec();
   }
@@ -31,25 +32,25 @@ export class MongoNoteRepository implements NoteRepository {
     return NoteModel.create(note);
   }
 
-  updateOwned(id: Types.ObjectId, owner: Types.ObjectId, changes: NoteChanges): Promise<NoteDocument | null> {
-    return NoteModel.findOneAndUpdate({ _id: id, owner }, { $set: changes }, { new: true, runValidators: true }).exec();
+  updateOwned(id: Types.ObjectId, userId: Types.ObjectId, changes: NoteChanges): Promise<NoteDocument | null> {
+    return NoteModel.findOneAndUpdate({ _id: id, user_id: userId }, { $set: changes }, { new: true, runValidators: true }).exec();
   }
 
-  async deleteOwned(id: Types.ObjectId, owner: Types.ObjectId): Promise<boolean> {
-    const { deletedCount } = await NoteModel.deleteOne({ _id: id, owner }).exec();
+  async deleteOwned(id: Types.ObjectId, userId: Types.ObjectId): Promise<boolean> {
+    const { deletedCount } = await NoteModel.deleteOne({ _id: id, user_id: userId }).exec();
     return deletedCount > 0;
   }
 
-  async deleteByOwner(ownerId: Types.ObjectId): Promise<void> {
-    await NoteModel.deleteMany({ owner: ownerId }).exec();
+  async deleteByUser(userId: Types.ObjectId): Promise<void> {
+    await NoteModel.deleteMany({ user_id: userId }).exec();
   }
 
-  private findPage(filter: { owner?: Types.ObjectId }, page: PageRequest): Promise<NoteView[]> {
+  private findPage(filter: { user_id?: Types.ObjectId }, page: PageRequest): Promise<NoteView[]> {
     return NoteModel.find(filter)
       .sort({ _id: -1 })
       .skip(page.skip)
       .limit(page.limit)
-      .populate('owner', OWNER_FIELDS)
+      .populate('user', USER_FIELDS)
       .lean<NoteView[]>()
       .exec();
   }

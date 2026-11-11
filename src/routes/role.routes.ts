@@ -4,6 +4,7 @@ import { PermissionKey } from '../common/PermissionKey';
 import { PermissionController } from '../controllers/PermissionController';
 import { RoleController } from '../controllers/RoleController';
 import { CreateRoleDto } from '../dto/role/CreateRoleDto';
+import { SetGrantActiveDto } from '../dto/role/SetGrantActiveDto';
 import { UpdateRoleDto } from '../dto/role/UpdateRoleDto';
 import { AuthenticationMiddleware } from '../middleware/AuthenticationMiddleware';
 import { authorize } from '../middleware/authorize';
@@ -26,6 +27,12 @@ export function roleRoutes(): Router {
     authorize(ROLES_MANAGE),
     validateBody(UpdateRoleDto, { strict: true }),
     handle((req, res) => controller.update(req, res)),
+  );
+  router.patch(
+    '/:id/permissions/:permission_id',
+    authorize(ROLES_MANAGE),
+    validateBody(SetGrantActiveDto, { strict: true }),
+    handle((req, res) => controller.setGrantActive(req, res)),
   );
   router.delete('/:id', authorize(ROLES_MANAGE), handle((req, res) => controller.delete(req, res)));
   return router;

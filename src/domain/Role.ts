@@ -1,4 +1,5 @@
 import { Schema, Types, model } from 'mongoose';
+import type { RoleGrant } from './RolePermission';
 
 export interface RoleEntity {
   _id: Types.ObjectId;
@@ -10,8 +11,8 @@ export interface RoleEntity {
   updatedAt: Date;
 }
 
-/** A role together with the permission keys it grants. */
-export type RoleView = RoleEntity & { permissions: string[] };
+/** A role with its grants; `permissions` lists the keys of the active grants (what the role can do). */
+export type RoleView = RoleEntity & { permissions: string[]; grants: RoleGrant[] };
 
 const roleSchema = new Schema<RoleEntity>(
   {

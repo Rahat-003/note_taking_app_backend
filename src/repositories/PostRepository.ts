@@ -4,7 +4,7 @@ import type { PageRequest } from '../common/pagination/PageRequest';
 import type { PostDocument, PostView } from '../domain/Post';
 
 export interface NewPost {
-  author: Types.ObjectId;
+  user_id: Types.ObjectId;
   title: string;
   body: string;
 }
@@ -15,8 +15,8 @@ export interface PostRepository {
   /** _id index. */
   findById(id: Types.ObjectId): Promise<PostView | null>;
   create(post: NewPost): Promise<PostDocument>;
-  /** _id index; when author is given the post must also be theirs. Returns false when nothing matched. */
-  delete(id: Types.ObjectId, author?: Types.ObjectId): Promise<boolean>;
-  /** { author: 1, _id: -1 }. */
-  deleteByAuthor(authorId: Types.ObjectId): Promise<void>;
+  /** _id index; when userId is given the post must also be that user's. Returns false when nothing matched. */
+  delete(id: Types.ObjectId, userId?: Types.ObjectId): Promise<boolean>;
+  /** { user_id: 1, _id: -1 }. */
+  deleteByUser(userId: Types.ObjectId): Promise<void>;
 }

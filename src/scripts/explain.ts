@@ -14,6 +14,7 @@ import { RoleModel } from '../domain/Role';
 import { RolePermissionModel } from '../domain/RolePermission';
 import { UserModel } from '../domain/User';
 import { UserAggregations } from '../repositories/aggregations/UserAggregations';
+import { PERMISSION_KEY_LOOKUP } from '../repositories/mongo/MongoRolePermissionRepository';
 
 const INTERESTS = ['chess', 'reading', 'football', 'cooking', 'music', 'travel', 'coding'];
 
@@ -47,13 +48,13 @@ async function fillSampleData() {
       name: `User ${i}`,
       email: `user${i}@example.com`,
       password,
-      role: userRole._id,
+      role_id: userRole._id,
       interests: INTERESTS.filter((_, j) => (i + j) % 3 === 0),
     })),
   );
-  await NoteModel.insertMany(users.flatMap((u) => Array.from({ length: 5 }, (_, i) => ({ owner: u._id, title: `n${i}` }))));
+  await NoteModel.insertMany(users.flatMap((u) => Array.from({ length: 5 }, (_, i) => ({ user_id: u._id, title: `n${i}` }))));
   await PostModel.insertMany(
-    users.flatMap((u) => Array.from({ length: 3 }, (_, i) => ({ author: u._id, title: `p${i}`, body: 'b' }))),
+    users.flatMap((u) => Array.from({ length: 3 }, (_, i) => ({ user_id: u._id, title: `p${i}`, body: 'b' }))),
   );
   return users[0]!;
 }
@@ -68,8 +69,8 @@ async function main(): Promise<void> {
     await container.resolve(Bootstrapper).run();
 
     const user = await fillSampleData();
-    const note = await NoteModel.findOne({ owner: user._id }).orFail();
-    const post = await PostModel.findOne({ author: user._id }).orFail();
+    const note = await NoteModel.findOne({ user_id: user._id }).orFail();
+    const post = await PostModel.findOne({ user_id: user._id }).orFail();
     const [skip, limit] = [0, 20];
     const stats = 'executionStats' as const;
 
@@ -83,23 +84,23 @@ async function main(): Promise<void> {
     await report('login: users.findOne({email})', UserModel.findOne({ email: user.email }).explain(stats));
     await report('auth / GET user: users.findById', UserModel.findById(user._id).explain(stats));
     await report('admin list users: sort _id desc', UserModel.find().sort({ _id: -1 }).limit(limit).explain(stats));
-    await report('role still assigned?: users.exists({role})', UserModel.findOne({ role: user.role }).select('_id').explain(stats));
-    await report('my notes: find({owner}).sort(_id desc)', NoteModel.find({ owner: user._id }).sort({ _id: -1 }).limit(limit).explain(stats));
+    await report('role still assigned?: users.exists({role_id})', UserModel.findOne({ role_id: user.role_id }).select('_id').explain(stats));
+    await report('my notes: find({user_id}).sort(_id desc)', NoteModel.find({ user_id: user._id }).sort({ _id: -1 }).limit(limit).explain(stats));
     await report(
-      'my notes count: countDocuments({owner})',
-      NoteModel.collection.aggregate([{ $match: { owner: user._id } }, { $count: 'n' }]).explain(stats),
+      'my notes count: countDocuments({user_id})',
+      NoteModel.collection.aggregate([{ $match: { user_id: user._id } }, { $count: 'n' }]).explain(stats),
     );
     await report('all notes: sort _id desc', NoteModel.find().sort({ _id: -1 }).limit(limit).explain(stats));
-    await report('GET note: findOne({_id, owner})', NoteModel.findOne({ _id: note._id, owner: user._id }).explain(stats));
+    await report('GET note: findOne({_id, user_id})', NoteModel.findOne({ _id: note._id, user_id: user._id }).explain(stats));
     await report('posts feed: sort _id desc', PostModel.find().sort({ _id: -1 }).limit(limit).explain(stats));
     await report('GET post: findById', PostModel.findById(post._id).explain(stats));
-    await report('cascade delete posts: {author}', PostModel.find({ author: user._id }).explain(stats));
+    await report('cascade delete posts: {user_id}', PostModel.find({ user_id: user._id }).explain(stats));
     await report('permissions list: sort key', PermissionModel.find().sort({ key: 1 }).limit(limit).explain(stats));
     await report('role by name', RoleModel.findOne({ name: 'user' }).explain(stats));
     await report('roles list: sort name', RoleModel.find().sort({ name: 1 }).limit(limit).explain(stats));
     await report(
-      'request auth: role_permissions.find({role})',
-      RolePermissionModel.find({ role: user.role }, { _id: 0, permission: 1 }).explain(stats),
+      'request auth: active grants of role -> keys',
+      RolePermissionModel.aggregate([{ $match: { role_id: user.role_id, isActive: true } }, ...PERMISSION_KEY_LOOKUP]).explain(stats),
     );
     await report('Scenario 1: group by interests (all)', UserModel.aggregate(UserAggregations.usersByInterest('', skip, limit)).explain(stats));
     await report(

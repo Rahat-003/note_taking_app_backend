@@ -9,6 +9,7 @@ import { RoleName } from '../../common/RoleName';
 import { Tokens } from '../../common/Tokens';
 import type { RoleEntity, RoleView } from '../../domain/Role';
 import type { CreateRoleDto } from '../../dto/role/CreateRoleDto';
+import type { SetGrantActiveDto } from '../../dto/role/SetGrantActiveDto';
 import type { UpdateRoleDto } from '../../dto/role/UpdateRoleDto';
 import type { RolePermissionRepository } from '../../repositories/RolePermissionRepository';
 import type { RoleRepository } from '../../repositories/RoleRepository';
@@ -31,15 +32,14 @@ export class RoleServiceImpl implements RoleService {
   }
 
   async get(roleId: string): Promise<RoleView> {
-    const role = await this.load(roleId);
-    return { ...role, permissions: await this.authorization.getPermissions(role._id) };
+    return this.withGrants(await this.load(roleId));
   }
 
   async create(principal: Principal, dto: CreateRoleDto): Promise<RoleView> {
     principal.assertHolds(dto.permissions, 'You cannot grant permissions you do not have');
     const role = await this.roles.create({ name: dto.name, description: dto.description });
     await this.authorization.setRolePermissions(role._id, dto.permissions);
-    return { ...role, permissions: dto.permissions };
+    return this.withGrants(role);
   }
 
   async update(principal: Principal, roleId: string, dto: UpdateRoleDto): Promise<RoleView> {
@@ -48,14 +48,24 @@ export class RoleServiceImpl implements RoleService {
     if (role.system && dto.name && dto.name !== role.name) throw new BadRequestException('System roles cannot be renamed');
 
     const { permissions, ...fields } = dto;
-    const current = await this.authorization.getPermissions(role._id);
-    principal.assertHolds(current, 'You cannot edit a role with permissions you do not have');
+    principal.assertHolds(await this.grantedKeys(role), 'You cannot edit a role with permissions you do not have');
     if (permissions) {
       principal.assertHolds(permissions, 'You cannot grant permissions you do not have');
       await this.authorization.setRolePermissions(role._id, permissions);
     }
     const updated = Object.keys(fields).length ? await this.roles.update(role._id, fields) : role;
-    return { ...(updated ?? role), permissions: permissions ?? current };
+    return this.withGrants(updated ?? role);
+  }
+
+  async setGrantActive(principal: Principal, roleId: string, permissionId: string, dto: SetGrantActiveDto): Promise<RoleView> {
+    const role = await this.load(roleId);
+    if (role.name === RoleName.ADMIN) throw new BadRequestException('The admin role always has every permission');
+    // Same rule as editing the role: you must hold everything it grants (including the toggled permission).
+    principal.assertHolds(await this.grantedKeys(role), 'You cannot edit a role with permissions you do not have');
+    if (!(await this.authorization.setGrantActive(role._id, ObjectIds.parse(permissionId), dto.isActive))) {
+      throw new NotFoundException('This role does not grant that permission');
+    }
+    return this.withGrants(role);
   }
 
   async delete(roleId: string): Promise<void> {
@@ -66,6 +76,16 @@ export class RoleServiceImpl implements RoleService {
     }
     await this.rolePermissions.deleteByRole(role._id);
     await this.roles.deleteById(role._id);
+  }
+
+  /** Keys of every grant of the role, active or not. */
+  private async grantedKeys(role: RoleEntity): Promise<string[]> {
+    return (await this.authorization.getGrants(role._id)).map((g) => g.key);
+  }
+
+  private async withGrants(role: RoleEntity): Promise<RoleView> {
+    const grants = await this.authorization.getGrants(role._id);
+    return { ...role, permissions: grants.filter((g) => g.isActive).map((g) => g.key), grants };
   }
 
   private async load(roleId: string): Promise<RoleEntity> {
