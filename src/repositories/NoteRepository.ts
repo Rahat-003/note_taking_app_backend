@@ -1,13 +1,13 @@
 import type { Types } from 'mongoose';
 import type { Page } from '../common/pagination/Page';
 import type { PageRequest } from '../common/pagination/PageRequest';
-import type { NoteDocument, NoteEntity, NoteSortField, NoteStatus, NoteView } from '../domain/Note';
+import type { NoteDocument, NoteEntity, NoteSortField, NoteView } from '../domain/Note';
 
 export interface NewNote {
   user_id: Types.ObjectId;
   title: string;
   content?: string;
-  status?: NoteStatus;
+  isArchived?: boolean;
   category_id?: Types.ObjectId;
   tag_ids?: Types.ObjectId[];
 }
@@ -15,7 +15,7 @@ export interface NewNote {
 export interface NoteChanges {
   title?: string;
   content?: string;
-  status?: NoteStatus;
+  isArchived?: boolean;
   /** null removes the category. */
   category_id?: Types.ObjectId | null;
   tag_ids?: Types.ObjectId[];
@@ -26,7 +26,8 @@ export interface NoteSearchCriteria {
   userId?: Types.ObjectId;
   /** Full-text search on title and content. */
   text?: string;
-  status?: NoteStatus;
+  /** true: archived notes only; false: non-archived only; undefined: both. */
+  isArchived?: boolean;
   categoryId?: Types.ObjectId;
   /** Notes carrying this tag. */
   tagId?: Types.ObjectId;
@@ -41,7 +42,7 @@ export interface NoteRepository {
    * - one user's notes: { user_id: 1, _id: -1 } (created) or { user_id: 1, updatedAt: -1 } (updated);
    *   in one category / with one tag: { user_id: 1, category_id: 1, _id: -1 } / { user_id: 1, tag_ids: 1, _id: -1 }
    * - every user's notes: the _id index (created) or { updatedAt: -1 } (updated)
-   * The status filter is applied to the rows the index returns.
+   * The isArchived filter is applied to the rows the index returns.
    */
   search(criteria: NoteSearchCriteria, page: PageRequest): Promise<Page<NoteView>>;
   /** _id index; when userId is given the note must also belong to that user. */

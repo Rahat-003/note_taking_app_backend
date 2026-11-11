@@ -14,7 +14,7 @@ export class MongoNoteRepository implements NoteRepository {
   async search(criteria: NoteSearchCriteria, page: PageRequest): Promise<Page<NoteView>> {
     const filter: FilterQuery<NoteEntity> = {};
     if (criteria.userId) filter.user_id = criteria.userId;
-    if (criteria.status) filter.status = criteria.status;
+    if (criteria.isArchived !== undefined) filter.isArchived = criteria.isArchived;
     if (criteria.categoryId) filter.category_id = criteria.categoryId;
     if (criteria.tagId) filter.tag_ids = criteria.tagId;
     if (criteria.text) filter.$text = { $search: criteria.text };
@@ -62,7 +62,7 @@ export class MongoNoteRepository implements NoteRepository {
   private count(filter: FilterQuery<NoteEntity>, criteria: NoteSearchCriteria): Promise<number> {
     if (!Object.keys(filter).length) return NoteModel.estimatedDocumentCount().exec(); // metadata, no scan
     // With a user or text condition the planner picks the matching index. A cross-user filter on
-    // status / category / tag alone has no index of its own, so walk the _id index instead of the collection.
+    // isArchived / category / tag alone has no index of its own, so walk the _id index instead of the collection.
     const query = NoteModel.countDocuments(filter);
     return (criteria.userId || criteria.text ? query : query.hint({ _id: 1 })).exec();
   }

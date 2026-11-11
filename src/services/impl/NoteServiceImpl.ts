@@ -44,7 +44,8 @@ export class NoteServiceImpl implements NoteService {
       {
         userId,
         text: query.q,
-        status: query.status,
+        // Archived notes stay out of the list unless asked for.
+        isArchived: query.isArchived === 'all' ? undefined : query.isArchived === 'true',
         categoryId: query.category_id ? ObjectIds.parse(query.category_id) : undefined,
         tagId: query.tag_id ? ObjectIds.parse(query.tag_id) : undefined,
         sort: query.sort ?? 'createdAt',
@@ -68,7 +69,7 @@ export class NoteServiceImpl implements NoteService {
       user_id: principal.id,
       title: dto.title,
       content: dto.content,
-      status: dto.status,
+      isArchived: dto.isArchived,
       category_id: categoryId,
       tag_ids: tagIds,
     });
@@ -82,7 +83,7 @@ export class NoteServiceImpl implements NoteService {
     const before = await this.notes.findOwnedEntity(id, principal.id);
     if (!before) throw new NotFoundException('Note not found');
 
-    const changes: NoteChanges = { title: dto.title, content: dto.content, status: dto.status };
+    const changes: NoteChanges = { title: dto.title, content: dto.content, isArchived: dto.isArchived };
     if (dto.category_id !== undefined) {
       changes.category_id = dto.category_id === '' ? null : await this.categories.requireExisting(dto.category_id);
     }

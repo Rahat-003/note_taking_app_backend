@@ -1,5 +1,5 @@
 import { IsIn, IsString, MaxLength } from 'class-validator';
-import { NOTE_SORT_FIELDS, NOTE_STATUSES, type NoteSortField, type NoteStatus } from '../../domain/Note';
+import { NOTE_SORT_FIELDS, type NoteSortField } from '../../domain/Note';
 import { Optional, Trim } from '../decorators';
 
 /** Query string of GET /api/notes (page / limit are read by PageRequest). Empty values count as absent. */
@@ -16,8 +16,9 @@ export class NoteQueryDto {
   @Optional() @Trim() @IsString() @MaxLength(200)
   q?: string;
 
-  @Optional() @IsIn(NOTE_STATUSES)
-  status?: NoteStatus;
+  /** "false" (default): notes that are not archived; "true": the archive; "all": both. */
+  @Optional() @IsIn(['true', 'false', 'all'])
+  isArchived?: 'true' | 'false' | 'all';
 
   /** Notes in this category (categories._id). */
   @Optional() @IsString()

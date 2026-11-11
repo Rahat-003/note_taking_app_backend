@@ -1,9 +1,6 @@
 import { type HydratedDocument, Schema, Types, model } from 'mongoose';
 import type { LabelSummary } from './Label';
 
-export const NOTE_STATUSES = ['active', 'archived'] as const;
-export type NoteStatus = (typeof NOTE_STATUSES)[number];
-
 /** Notes list sort keys. */
 export const NOTE_SORT_FIELDS = ['createdAt', 'updatedAt'] as const;
 export type NoteSortField = (typeof NOTE_SORT_FIELDS)[number];
@@ -14,7 +11,8 @@ export interface NoteEntity {
   user_id: Types.ObjectId;
   title: string;
   content: string;
-  status: NoteStatus;
+  /** Archived notes are kept but left out of the notes list unless asked for (?isArchived=). */
+  isArchived: boolean;
   /** Foreign key to categories._id (optional). */
   category_id?: Types.ObjectId;
   /** Foreign keys to tags._id. */
@@ -39,7 +37,7 @@ const noteSchema = new Schema<NoteEntity>(
     user_id: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     title: { type: String, required: true, trim: true, maxlength: 200 },
     content: { type: String, default: '', maxlength: 20000 },
-    status: { type: String, enum: NOTE_STATUSES, default: 'active', required: true },
+    isArchived: { type: Boolean, default: false, required: true },
     category_id: { type: Schema.Types.ObjectId, ref: 'Category' },
     tag_ids: { type: [{ type: Schema.Types.ObjectId, ref: 'Tag' }], default: [] },
   },
@@ -47,7 +45,7 @@ const noteSchema = new Schema<NoteEntity>(
 );
 
 // "My notes" sorted by created date (_id order = creation order) and countDocuments({ user_id }).
-// The status filter is applied to the rows this index finds for one user.
+// The isArchived filter is applied to the rows this index finds for one user (as it is on the indexes below).
 // Admin "all notes" by created date and GET/PATCH/DELETE by id use the built-in _id index.
 noteSchema.index({ user_id: 1, _id: -1 });
 // "My notes" sorted by updated date.

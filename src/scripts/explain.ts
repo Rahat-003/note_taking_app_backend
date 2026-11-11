@@ -65,7 +65,7 @@ async function fillSampleData() {
         user_id: u._id,
         title: `n${i} ${words[(n + i) % words.length]}`,
         content: `about ${words[(n + i + 1) % words.length]}`,
-        status: i % 4 === 0 ? 'archived' : 'active',
+        isArchived: i % 4 === 0,
         category_id: categories[i % words.length]!._id,
         tag_ids: [tags[(n + i) % words.length]!._id],
       })),
@@ -126,7 +126,8 @@ async function main(): Promise<void> {
     await report('all notes: sort updatedAt desc', NoteModel.find().sort({ updatedAt: -1 }).limit(limit).explain(stats));
     const category = await CategoryModel.findOne({ name: 'budget' }).orFail();
     const tag = await TagModel.findOne({ name: 'meeting' }).orFail();
-    await report('my notes: ?status', NoteModel.find({ ...mine, status: 'archived' }).sort({ _id: -1 }).limit(limit).explain(stats));
+    await report('my notes (default: not archived)', NoteModel.find({ ...mine, isArchived: false }).sort({ _id: -1 }).limit(limit).explain(stats));
+    await report('my notes: ?isArchived=true', NoteModel.find({ ...mine, isArchived: true }).sort({ _id: -1 }).limit(limit).explain(stats));
     await report('my notes: ?category_id', NoteModel.find({ ...mine, category_id: category._id }).sort({ _id: -1 }).limit(limit).explain(stats));
     await report('my notes: ?category_id count', NoteModel.collection.aggregate([{ $match: { ...mine, category_id: category._id } }, { $count: 'n' }]).explain(stats));
     await report('my notes: ?tag_id', NoteModel.find({ ...mine, tag_ids: tag._id }).sort({ _id: -1 }).limit(limit).explain(stats));
@@ -137,7 +138,7 @@ async function main(): Promise<void> {
     await report('category counter: user_categories key', UserCategoryModel.findOne({ ...mine, category_id: category._id }).explain(stats));
     await report('my notes: search ?q=meeting', NoteModel.find({ ...mine, $text: { $search: 'meeting' } }).sort({ _id: -1 }).limit(limit).explain(stats));
     await report('all notes: search ?q=meeting', NoteModel.find({ $text: { $search: 'meeting' } }).sort({ _id: -1 }).limit(limit).explain(stats));
-    await report('all notes: ?status count (hint _id)', NoteModel.collection.aggregate([{ $match: { status: 'archived' } }, { $count: 'n' }], { hint: { _id: 1 } }).explain(stats));
+    await report('all notes: ?isArchived count (hint _id)', NoteModel.collection.aggregate([{ $match: { isArchived: true } }, { $count: 'n' }], { hint: { _id: 1 } }).explain(stats));
     await report('GET note: findOne({_id, user_id})', NoteModel.findOne({ _id: note._id, user_id: user._id }).explain(stats));
     await report('posts feed: sort _id desc', PostModel.find().sort({ _id: -1 }).limit(limit).explain(stats));
     await report('GET post: findById', PostModel.findById(post._id).explain(stats));

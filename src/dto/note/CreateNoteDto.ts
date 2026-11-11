@@ -1,5 +1,4 @@
-import { ArrayMaxSize, IsArray, IsIn, IsString, Length, MaxLength } from 'class-validator';
-import { NOTE_STATUSES, type NoteStatus } from '../../domain/Note';
+import { ArrayMaxSize, IsArray, IsBoolean, IsString, Length, MaxLength } from 'class-validator';
 import { Optional, Trim, TrimLowerCaseEach } from '../decorators';
 
 export class CreateNoteDto {
@@ -9,8 +8,8 @@ export class CreateNoteDto {
   @Optional() @IsString() @MaxLength(20000)
   content?: string;
 
-  @Optional() @IsIn(NOTE_STATUSES)
-  status?: NoteStatus;
+  @Optional() @IsBoolean()
+  isArchived?: boolean;
 
   /** Foreign key to categories._id (optional). */
   @Optional() @IsString()
