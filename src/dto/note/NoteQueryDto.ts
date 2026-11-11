@@ -1,6 +1,6 @@
 import { IsIn, IsString, MaxLength } from 'class-validator';
 import { NOTE_SORT_FIELDS, NOTE_STATUSES, type NoteSortField, type NoteStatus } from '../../domain/Note';
-import { Optional, Trim, TrimLowerCase } from '../decorators';
+import { Optional, Trim } from '../decorators';
 
 /** Query string of GET /api/notes (page / limit are read by PageRequest). Empty values count as absent. */
 export class NoteQueryDto {
@@ -19,11 +19,13 @@ export class NoteQueryDto {
   @Optional() @IsIn(NOTE_STATUSES)
   status?: NoteStatus;
 
-  @Optional() @TrimLowerCase() @IsString() @MaxLength(50)
-  category?: string;
+  /** Notes in this category (categories._id). */
+  @Optional() @IsString()
+  category_id?: string;
 
-  @Optional() @TrimLowerCase() @IsString() @MaxLength(30)
-  tag?: string;
+  /** Notes carrying this tag (tags._id). */
+  @Optional() @IsString()
+  tag_id?: string;
 
   @Optional() @IsIn(NOTE_SORT_FIELDS)
   sort?: NoteSortField;

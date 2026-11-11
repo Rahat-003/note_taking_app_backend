@@ -7,11 +7,13 @@ import type { Page } from '../../common/pagination/Page';
 import type { PageRequest } from '../../common/pagination/PageRequest';
 import { PermissionKey } from '../../common/PermissionKey';
 import { Tokens } from '../../common/Tokens';
-import type { NoteDocument, NoteView } from '../../domain/Note';
+import type { NoteView } from '../../domain/Note';
 import type { CreateNoteDto } from '../../dto/note/CreateNoteDto';
 import type { NoteQueryDto } from '../../dto/note/NoteQueryDto';
 import type { UpdateNoteDto } from '../../dto/note/UpdateNoteDto';
-import type { NoteRepository } from '../../repositories/NoteRepository';
+import type { NoteChanges, NoteRepository } from '../../repositories/NoteRepository';
+import type { CategoryService } from '../CategoryService';
+import type { TagService } from '../TagService';
 import type { NoteService } from '../NoteService';
 import type { Principal } from '../Principal';
 
@@ -22,7 +24,11 @@ import type { Principal } from '../Principal';
  */
 @injectable()
 export class NoteServiceImpl implements NoteService {
-  constructor(@inject(Tokens.NoteRepository) private readonly notes: NoteRepository) {}
+  constructor(
+    @inject(Tokens.NoteRepository) private readonly notes: NoteRepository,
+    @inject(Tokens.CategoryService) private readonly categories: CategoryService,
+    @inject(Tokens.TagService) private readonly tags: TagService,
+  ) {}
 
   list(principal: Principal, query: NoteQueryDto, page: PageRequest): Promise<Page<NoteView>> {
     const all = query.all === 'true';
@@ -39,8 +45,8 @@ export class NoteServiceImpl implements NoteService {
         userId,
         text: query.q,
         status: query.status,
-        category: query.category,
-        tag: query.tag,
+        categoryId: query.category_id ? ObjectIds.parse(query.category_id) : undefined,
+        tagId: query.tag_id ? ObjectIds.parse(query.tag_id) : undefined,
         sort: query.sort ?? 'createdAt',
         order: query.order ?? 'desc',
       },
@@ -55,27 +61,52 @@ export class NoteServiceImpl implements NoteService {
     return note;
   }
 
-  create(principal: Principal, dto: CreateNoteDto): Promise<NoteDocument> {
-    return this.notes.create({
+  async create(principal: Principal, dto: CreateNoteDto): Promise<NoteView> {
+    const categoryId = dto.category_id ? await this.categories.requireExisting(dto.category_id) : undefined;
+    const tagIds = await this.tags.idsForNames(dto.tags ?? []);
+    const note = await this.notes.create({
       user_id: principal.id,
       title: dto.title,
       content: dto.content,
       status: dto.status,
-      category: dto.category || undefined,
-      tags: dto.tags && [...new Set(dto.tags)],
+      category_id: categoryId,
+      tag_ids: tagIds,
     });
+    await this.categories.recordUsage(principal.id, undefined, categoryId);
+    await this.tags.recordUsage(principal.id, [], tagIds);
+    return this.view(note._id);
   }
 
-  async update(principal: Principal, noteId: string, dto: UpdateNoteDto): Promise<NoteDocument> {
-    const changes = { ...dto, ...(dto.tags && { tags: [...new Set(dto.tags)] }) };
-    const note = await this.notes.updateOwned(ObjectIds.parse(noteId), principal.id, changes);
-    if (!note) throw new NotFoundException('Note not found');
-    return note;
+  async update(principal: Principal, noteId: string, dto: UpdateNoteDto): Promise<NoteView> {
+    const id = ObjectIds.parse(noteId);
+    const before = await this.notes.findOwnedEntity(id, principal.id);
+    if (!before) throw new NotFoundException('Note not found');
+
+    const changes: NoteChanges = { title: dto.title, content: dto.content, status: dto.status };
+    if (dto.category_id !== undefined) {
+      changes.category_id = dto.category_id === '' ? null : await this.categories.requireExisting(dto.category_id);
+    }
+    if (dto.tags !== undefined) changes.tag_ids = await this.tags.idsForNames(dto.tags);
+    for (const key of Object.keys(changes) as Array<keyof NoteChanges>) if (changes[key] === undefined) delete changes[key];
+
+    const after = await this.notes.updateOwned(id, principal.id, changes);
+    if (!after) throw new NotFoundException('Note not found');
+    await this.categories.recordUsage(principal.id, before.category_id, after.category_id ?? undefined);
+    await this.tags.recordUsage(principal.id, before.tag_ids, after.tag_ids);
+    return this.view(id);
   }
 
   async delete(principal: Principal, noteId: string): Promise<void> {
-    if (!(await this.notes.deleteOwned(ObjectIds.parse(noteId), principal.id))) {
-      throw new NotFoundException('Note not found');
-    }
+    const deleted = await this.notes.deleteOwned(ObjectIds.parse(noteId), principal.id);
+    if (!deleted) throw new NotFoundException('Note not found');
+    await this.categories.recordUsage(principal.id, deleted.category_id, undefined);
+    await this.tags.recordUsage(principal.id, deleted.tag_ids, []);
+  }
+
+  /** The note with its owner, category and tags populated. */
+  private async view(id: Types.ObjectId): Promise<NoteView> {
+    const note = await this.notes.findOne(id);
+    if (!note) throw new NotFoundException('Note not found');
+    return note;
   }
 }

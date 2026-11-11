@@ -1,6 +1,6 @@
 import { ArrayMaxSize, IsArray, IsIn, IsString, Length, MaxLength } from 'class-validator';
 import { NOTE_STATUSES, type NoteStatus } from '../../domain/Note';
-import { Optional, Trim, TrimLowerCase, TrimLowerCaseEach } from '../decorators';
+import { Optional, Trim, TrimLowerCaseEach } from '../decorators';
 
 export class UpdateNoteDto {
   @Optional() @Trim() @IsString() @Length(1, 200)
@@ -12,10 +12,11 @@ export class UpdateNoteDto {
   @Optional() @IsIn(NOTE_STATUSES)
   status?: NoteStatus;
 
-  /** Optional label; an empty string removes it. */
-  @Optional() @TrimLowerCase() @IsString() @MaxLength(50)
-  category?: string;
+  /** Foreign key to categories._id; an empty string removes the category. */
+  @Optional() @IsString()
+  category_id?: string;
 
   @Optional() @TrimLowerCaseEach() @IsArray() @ArrayMaxSize(20) @IsString({ each: true }) @Length(1, 30, { each: true })
+  /** Tag names; tags that do not exist yet are created. */
   tags?: string[];
 }

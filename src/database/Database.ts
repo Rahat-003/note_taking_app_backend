@@ -1,15 +1,30 @@
 import mongoose, { type mongo } from 'mongoose';
 import { singleton } from 'tsyringe';
+import { CategoryModel } from '../domain/Category';
 import { NoteModel } from '../domain/Note';
 import { PermissionModel } from '../domain/Permission';
 import { PostModel } from '../domain/Post';
 import { RoleModel } from '../domain/Role';
 import { RolePermissionModel } from '../domain/RolePermission';
+import { TagModel } from '../domain/Tag';
 import { UserModel } from '../domain/User';
+import { UserCategoryModel } from '../domain/UserCategory';
+import { UserTagModel } from '../domain/UserTag';
 
 @singleton()
 export class Database {
-  static readonly models = [UserModel, NoteModel, PostModel, RoleModel, PermissionModel, RolePermissionModel] as const;
+  static readonly models = [
+    UserModel,
+    NoteModel,
+    PostModel,
+    RoleModel,
+    PermissionModel,
+    RolePermissionModel,
+    CategoryModel,
+    TagModel,
+    UserCategoryModel,
+    UserTagModel,
+  ] as const;
 
   async connect(uri: string): Promise<void> {
     // Collections, validators and indexes are created only by migrations (npm run migrate),

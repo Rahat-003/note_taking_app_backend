@@ -6,6 +6,10 @@ export const Tokens = {
   RoleRepository: Symbol.for('RoleRepository'),
   PermissionRepository: Symbol.for('PermissionRepository'),
   RolePermissionRepository: Symbol.for('RolePermissionRepository'),
+  CategoryRepository: Symbol.for('CategoryRepository'),
+  TagRepository: Symbol.for('TagRepository'),
+  UserCategoryRepository: Symbol.for('UserCategoryRepository'),
+  UserTagRepository: Symbol.for('UserTagRepository'),
   AuthService: Symbol.for('AuthService'),
   AuthorizationService: Symbol.for('AuthorizationService'),
   TokenService: Symbol.for('TokenService'),
@@ -14,4 +18,6 @@ export const Tokens = {
   PostService: Symbol.for('PostService'),
   RoleService: Symbol.for('RoleService'),
   PermissionService: Symbol.for('PermissionService'),
+  CategoryService: Symbol.for('CategoryService'),
+  TagService: Symbol.for('TagService'),
 } as const;

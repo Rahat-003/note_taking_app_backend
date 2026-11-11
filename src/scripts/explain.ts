@@ -7,12 +7,16 @@ import { container } from '../container';
 import { AppConfig } from '../config/AppConfig';
 import { Database } from '../database/Database';
 import { Migrator } from '../database/Migrator';
+import { CategoryModel } from '../domain/Category';
 import { NoteModel } from '../domain/Note';
 import { PermissionModel } from '../domain/Permission';
 import { PostModel } from '../domain/Post';
 import { RoleModel } from '../domain/Role';
 import { RolePermissionModel } from '../domain/RolePermission';
+import { TagModel } from '../domain/Tag';
 import { UserModel } from '../domain/User';
+import { UserCategoryModel } from '../domain/UserCategory';
+import { UserTagModel } from '../domain/UserTag';
 import { UserAggregations } from '../repositories/aggregations/UserAggregations';
 import { PERMISSION_KEY_LOOKUP } from '../repositories/mongo/MongoRolePermissionRepository';
 
@@ -53,18 +57,32 @@ async function fillSampleData() {
     })),
   );
   const words = ['budget', 'meeting', 'recipe', 'travel', 'workout'];
-  await NoteModel.insertMany(
+  const categories = await CategoryModel.insertMany(words.map((name) => ({ name })));
+  const tags = await TagModel.insertMany(words.map((name) => ({ name })));
+  const notes = await NoteModel.insertMany(
     users.flatMap((u, n) =>
       Array.from({ length: 5 }, (_, i) => ({
         user_id: u._id,
         title: `n${i} ${words[(n + i) % words.length]}`,
         content: `about ${words[(n + i + 1) % words.length]}`,
         status: i % 4 === 0 ? 'archived' : 'active',
-        category: words[i % words.length],
-        tags: [words[(n + i) % words.length]!],
+        category_id: categories[i % words.length]!._id,
+        tag_ids: [tags[(n + i) % words.length]!._id],
       })),
     ),
   );
+  const count = <K extends string>(key: K, pick: (note: (typeof notes)[number]) => unknown[]) => {
+    const counts = new Map<string, { user_id: unknown; id: unknown; noteCount: number }>();
+    for (const note of notes) {
+      for (const id of pick(note)) {
+        const k = `${note.user_id}:${id}`;
+        counts.set(k, { user_id: note.user_id, id, noteCount: (counts.get(k)?.noteCount ?? 0) + 1 });
+      }
+    }
+    return [...counts.values()].map(({ user_id, id, noteCount }) => ({ user_id, [key]: id, noteCount }));
+  };
+  await UserCategoryModel.insertMany(count('category_id', (note) => [note.category_id]));
+  await UserTagModel.insertMany(count('tag_id', (note) => note.tag_ids));
   await PostModel.insertMany(
     users.flatMap((u) => Array.from({ length: 3 }, (_, i) => ({ user_id: u._id, title: `p${i}`, body: 'b' }))),
   );
@@ -106,8 +124,17 @@ async function main(): Promise<void> {
     const mine = { user_id: user._id };
     await report('my notes: sort updatedAt desc', NoteModel.find(mine).sort({ updatedAt: -1 }).limit(limit).explain(stats));
     await report('all notes: sort updatedAt desc', NoteModel.find().sort({ updatedAt: -1 }).limit(limit).explain(stats));
-    await report('my notes: ?status&category&tag', NoteModel.find({ ...mine, status: 'active', category: 'budget', tags: 'meeting' }).sort({ _id: -1 }).limit(limit).explain(stats));
-    await report('my notes: ?tag, sort updatedAt', NoteModel.find({ ...mine, tags: 'meeting' }).sort({ updatedAt: -1 }).limit(limit).explain(stats));
+    const category = await CategoryModel.findOne({ name: 'budget' }).orFail();
+    const tag = await TagModel.findOne({ name: 'meeting' }).orFail();
+    await report('my notes: ?status', NoteModel.find({ ...mine, status: 'archived' }).sort({ _id: -1 }).limit(limit).explain(stats));
+    await report('my notes: ?category_id', NoteModel.find({ ...mine, category_id: category._id }).sort({ _id: -1 }).limit(limit).explain(stats));
+    await report('my notes: ?category_id count', NoteModel.collection.aggregate([{ $match: { ...mine, category_id: category._id } }, { $count: 'n' }]).explain(stats));
+    await report('my notes: ?tag_id', NoteModel.find({ ...mine, tag_ids: tag._id }).sort({ _id: -1 }).limit(limit).explain(stats));
+    await report('categories list: sort name', CategoryModel.find().sort({ name: 1 }).limit(limit).explain(stats));
+    await report('tags list: sort name', TagModel.find().sort({ name: 1 }).limit(limit).explain(stats));
+    await report('my categories: user_categories', UserCategoryModel.aggregate([{ $match: mine }, { $lookup: { from: 'categories', localField: 'category_id', foreignField: '_id', as: 'c' } }]).explain(stats));
+    await report('my tags: user_tags', UserTagModel.aggregate([{ $match: mine }, { $lookup: { from: 'tags', localField: 'tag_id', foreignField: '_id', as: 't' } }]).explain(stats));
+    await report('category counter: user_categories key', UserCategoryModel.findOne({ ...mine, category_id: category._id }).explain(stats));
     await report('my notes: search ?q=meeting', NoteModel.find({ ...mine, $text: { $search: 'meeting' } }).sort({ _id: -1 }).limit(limit).explain(stats));
     await report('all notes: search ?q=meeting', NoteModel.find({ $text: { $search: 'meeting' } }).sort({ _id: -1 }).limit(limit).explain(stats));
     await report('all notes: ?status count (hint _id)', NoteModel.collection.aggregate([{ $match: { status: 'archived' } }, { $count: 'n' }], { hint: { _id: 1 } }).explain(stats));
