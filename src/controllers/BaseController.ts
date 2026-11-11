@@ -18,6 +18,11 @@ export abstract class BaseController {
     return req.body as T;
   }
 
+  /** The query DTO that validateQuery() put on req.validatedQuery. */
+  protected query<T>(req: Request): T {
+    return (req.validatedQuery ?? {}) as T;
+  }
+
   protected param(req: Request, name: string): string {
     return req.params[name] ?? '';
   }

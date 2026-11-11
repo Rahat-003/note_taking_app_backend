@@ -1,23 +1,37 @@
-import type { Types } from 'mongoose';
+import type { FilterQuery, Types, UpdateQuery } from 'mongoose';
 import { injectable } from 'tsyringe';
 import { Page } from '../../common/pagination/Page';
 import { PageRequest } from '../../common/pagination/PageRequest';
-import { type NoteDocument, NoteModel, type NoteView } from '../../domain/Note';
-import type { NewNote, NoteChanges, NoteRepository } from '../NoteRepository';
+import { type NoteDocument, type NoteEntity, NoteModel, type NoteView } from '../../domain/Note';
+import type { NewNote, NoteChanges, NoteRepository, NoteSearchCriteria } from '../NoteRepository';
 
 // The note's `user` virtual (user_id -> users) is populated with these fields.
 const USER_FIELDS = 'name email';
 
 @injectable()
 export class MongoNoteRepository implements NoteRepository {
-  async findByUser(userId: Types.ObjectId, page: PageRequest): Promise<Page<NoteView>> {
-    const filter = { user_id: userId };
-    const [data, total] = await Promise.all([this.findPage(filter, page), NoteModel.countDocuments(filter).exec()]);
-    return Page.of(data, total, page);
-  }
+  async search(criteria: NoteSearchCriteria, page: PageRequest): Promise<Page<NoteView>> {
+    const filter: FilterQuery<NoteEntity> = {};
+    if (criteria.userId) filter.user_id = criteria.userId;
+    if (criteria.status) filter.status = criteria.status;
+    if (criteria.category) filter.category = criteria.category;
+    if (criteria.tag) filter.tags = criteria.tag;
+    if (criteria.text) filter.$text = { $search: criteria.text };
 
-  async findAll(page: PageRequest): Promise<Page<NoteView>> {
-    const [data, total] = await Promise.all([this.findPage({}, page), NoteModel.estimatedDocumentCount().exec()]);
+    const direction = criteria.order === 'asc' ? 1 : -1;
+    // Created-date order is _id order (ObjectIds embed their creation time), so it reuses the _id-based indexes.
+    const sort: Record<string, 1 | -1> = criteria.sort === 'updatedAt' ? { updatedAt: direction } : { _id: direction };
+
+    const [data, total] = await Promise.all([
+      NoteModel.find(filter)
+        .sort(sort)
+        .skip(page.skip)
+        .limit(page.limit)
+        .populate('user', USER_FIELDS)
+        .lean<NoteView[]>()
+        .exec(),
+      this.count(filter, criteria),
+    ]);
     return Page.of(data, total, page);
   }
 
@@ -33,7 +47,12 @@ export class MongoNoteRepository implements NoteRepository {
   }
 
   updateOwned(id: Types.ObjectId, userId: Types.ObjectId, changes: NoteChanges): Promise<NoteDocument | null> {
-    return NoteModel.findOneAndUpdate({ _id: id, user_id: userId }, { $set: changes }, { new: true, runValidators: true }).exec();
+    const { category, ...fields } = changes;
+    const set: Partial<NoteEntity> = category ? { ...fields, category } : fields;
+    const update: UpdateQuery<NoteEntity> = {};
+    if (Object.keys(set).length) update.$set = set;
+    if (category === '') update.$unset = { category: 1 }; // an empty string removes the category
+    return NoteModel.findOneAndUpdate({ _id: id, user_id: userId }, update, { new: true, runValidators: true }).exec();
   }
 
   async deleteOwned(id: Types.ObjectId, userId: Types.ObjectId): Promise<boolean> {
@@ -45,13 +64,11 @@ export class MongoNoteRepository implements NoteRepository {
     await NoteModel.deleteMany({ user_id: userId }).exec();
   }
 
-  private findPage(filter: { user_id?: Types.ObjectId }, page: PageRequest): Promise<NoteView[]> {
-    return NoteModel.find(filter)
-      .sort({ _id: -1 })
-      .skip(page.skip)
-      .limit(page.limit)
-      .populate('user', USER_FIELDS)
-      .lean<NoteView[]>()
-      .exec();
+  private count(filter: FilterQuery<NoteEntity>, criteria: NoteSearchCriteria): Promise<number> {
+    if (!Object.keys(filter).length) return NoteModel.estimatedDocumentCount().exec(); // metadata, no scan
+    // With a user or text condition the planner picks the matching index. A cross-user filter on
+    // status / category / tag alone has no index of its own, so walk the _id index instead of the collection.
+    const query = NoteModel.countDocuments(filter);
+    return (criteria.userId || criteria.text ? query : query.hint({ _id: 1 })).exec();
   }
 }

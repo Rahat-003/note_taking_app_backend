@@ -1,3 +1,4 @@
+import type { Types } from 'mongoose';
 import { inject, injectable } from 'tsyringe';
 import { ForbiddenException } from '../../common/exceptions/ForbiddenException';
 import { NotFoundException } from '../../common/exceptions/NotFoundException';
@@ -8,9 +9,10 @@ import { PermissionKey } from '../../common/PermissionKey';
 import { Tokens } from '../../common/Tokens';
 import type { NoteDocument, NoteView } from '../../domain/Note';
 import type { CreateNoteDto } from '../../dto/note/CreateNoteDto';
+import type { NoteQueryDto } from '../../dto/note/NoteQueryDto';
 import type { UpdateNoteDto } from '../../dto/note/UpdateNoteDto';
 import type { NoteRepository } from '../../repositories/NoteRepository';
-import type { NoteListQuery, NoteService } from '../NoteService';
+import type { NoteService } from '../NoteService';
 import type { Principal } from '../Principal';
 
 /**
@@ -22,14 +24,28 @@ import type { Principal } from '../Principal';
 export class NoteServiceImpl implements NoteService {
   constructor(@inject(Tokens.NoteRepository) private readonly notes: NoteRepository) {}
 
-  list(principal: Principal, query: NoteListQuery, page: PageRequest): Promise<Page<NoteView>> {
-    const crossUser = query.all || Boolean(query.user_id);
+  list(principal: Principal, query: NoteQueryDto, page: PageRequest): Promise<Page<NoteView>> {
+    const all = query.all === 'true';
+    const crossUser = all || Boolean(query.user_id);
     if (!principal.can(crossUser ? PermissionKey.NOTES_READ_ALL : PermissionKey.NOTES_MANAGE_OWN)) {
       throw new ForbiddenException();
     }
-    if (query.user_id) return this.notes.findByUser(ObjectIds.parse(query.user_id), page);
-    if (query.all) return this.notes.findAll(page);
-    return this.notes.findByUser(principal.id, page);
+    let userId: Types.ObjectId | undefined = principal.id;
+    if (query.user_id) userId = ObjectIds.parse(query.user_id);
+    else if (all) userId = undefined;
+
+    return this.notes.search(
+      {
+        userId,
+        text: query.q,
+        status: query.status,
+        category: query.category,
+        tag: query.tag,
+        sort: query.sort ?? 'createdAt',
+        order: query.order ?? 'desc',
+      },
+      page,
+    );
   }
 
   async get(principal: Principal, noteId: string): Promise<NoteView> {
@@ -40,11 +56,19 @@ export class NoteServiceImpl implements NoteService {
   }
 
   create(principal: Principal, dto: CreateNoteDto): Promise<NoteDocument> {
-    return this.notes.create({ title: dto.title, content: dto.content, user_id: principal.id });
+    return this.notes.create({
+      user_id: principal.id,
+      title: dto.title,
+      content: dto.content,
+      status: dto.status,
+      category: dto.category || undefined,
+      tags: dto.tags && [...new Set(dto.tags)],
+    });
   }
 
   async update(principal: Principal, noteId: string, dto: UpdateNoteDto): Promise<NoteDocument> {
-    const note = await this.notes.updateOwned(ObjectIds.parse(noteId), principal.id, { ...dto });
+    const changes = { ...dto, ...(dto.tags && { tags: [...new Set(dto.tags)] }) };
+    const note = await this.notes.updateOwned(ObjectIds.parse(noteId), principal.id, changes);
     if (!note) throw new NotFoundException('Note not found');
     return note;
   }

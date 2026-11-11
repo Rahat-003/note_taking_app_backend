@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { inject, injectable } from 'tsyringe';
 import { Tokens } from '../common/Tokens';
 import type { CreateNoteDto } from '../dto/note/CreateNoteDto';
+import type { NoteQueryDto } from '../dto/note/NoteQueryDto';
 import type { UpdateNoteDto } from '../dto/note/UpdateNoteDto';
 import type { NoteService } from '../services/NoteService';
 import { BaseController } from './BaseController';
@@ -12,10 +13,9 @@ export class NoteController extends BaseController {
     super();
   }
 
-  /** GET /api/notes (own), ?user_id=<id> (one user's) or ?all=true (everyone's). */
+  /** GET /api/notes: own notes, ?user_id= or ?all=true, plus search, filters and sorting (NoteQueryDto). */
   async list(req: Request, res: Response): Promise<void> {
-    const query = { all: req.query.all === 'true', user_id: req.query.user_id };
-    res.json(await this.notes.list(this.principal(req), query, this.pageRequest(req)));
+    res.json(await this.notes.list(this.principal(req), this.query<NoteQueryDto>(req), this.pageRequest(req)));
   }
 
   async get(req: Request, res: Response): Promise<void> {

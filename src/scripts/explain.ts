@@ -27,7 +27,7 @@ function collectStages(node: unknown, out: string[] = []): string[] {
   const record = node as Record<string, unknown>;
   if (typeof record.stage === 'string') out.push(record.indexName ? `${record.stage}(${record.indexName})` : record.stage);
   for (const [key, value] of Object.entries(record)) {
-    if (key === 'rejectedPlans') continue;
+    if (key === 'rejectedPlans' || key === 'allPlansExecution') continue; // only the winning plan
     if (key === 'indexesUsed' && Array.isArray(value)) value.forEach((i) => out.push(`$lookup->IXSCAN(${i})`));
     else if (typeof value === 'object') collectStages(value, out);
   }
@@ -52,7 +52,19 @@ async function fillSampleData() {
       interests: INTERESTS.filter((_, j) => (i + j) % 3 === 0),
     })),
   );
-  await NoteModel.insertMany(users.flatMap((u) => Array.from({ length: 5 }, (_, i) => ({ user_id: u._id, title: `n${i}` }))));
+  const words = ['budget', 'meeting', 'recipe', 'travel', 'workout'];
+  await NoteModel.insertMany(
+    users.flatMap((u, n) =>
+      Array.from({ length: 5 }, (_, i) => ({
+        user_id: u._id,
+        title: `n${i} ${words[(n + i) % words.length]}`,
+        content: `about ${words[(n + i + 1) % words.length]}`,
+        status: i % 4 === 0 ? 'archived' : 'active',
+        category: words[i % words.length],
+        tags: [words[(n + i) % words.length]!],
+      })),
+    ),
+  );
   await PostModel.insertMany(
     users.flatMap((u) => Array.from({ length: 3 }, (_, i) => ({ user_id: u._id, title: `p${i}`, body: 'b' }))),
   );
@@ -91,6 +103,14 @@ async function main(): Promise<void> {
       NoteModel.collection.aggregate([{ $match: { user_id: user._id } }, { $count: 'n' }]).explain(stats),
     );
     await report('all notes: sort _id desc', NoteModel.find().sort({ _id: -1 }).limit(limit).explain(stats));
+    const mine = { user_id: user._id };
+    await report('my notes: sort updatedAt desc', NoteModel.find(mine).sort({ updatedAt: -1 }).limit(limit).explain(stats));
+    await report('all notes: sort updatedAt desc', NoteModel.find().sort({ updatedAt: -1 }).limit(limit).explain(stats));
+    await report('my notes: ?status&category&tag', NoteModel.find({ ...mine, status: 'active', category: 'budget', tags: 'meeting' }).sort({ _id: -1 }).limit(limit).explain(stats));
+    await report('my notes: ?tag, sort updatedAt', NoteModel.find({ ...mine, tags: 'meeting' }).sort({ updatedAt: -1 }).limit(limit).explain(stats));
+    await report('my notes: search ?q=meeting', NoteModel.find({ ...mine, $text: { $search: 'meeting' } }).sort({ _id: -1 }).limit(limit).explain(stats));
+    await report('all notes: search ?q=meeting', NoteModel.find({ $text: { $search: 'meeting' } }).sort({ _id: -1 }).limit(limit).explain(stats));
+    await report('all notes: ?status count (hint _id)', NoteModel.collection.aggregate([{ $match: { status: 'archived' } }, { $count: 'n' }], { hint: { _id: 1 } }).explain(stats));
     await report('GET note: findOne({_id, user_id})', NoteModel.findOne({ _id: note._id, user_id: user._id }).explain(stats));
     await report('posts feed: sort _id desc', PostModel.find().sort({ _id: -1 }).limit(limit).explain(stats));
     await report('GET post: findById', PostModel.findById(post._id).explain(stats));

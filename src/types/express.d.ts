@@ -5,6 +5,8 @@ declare global {
     interface Request {
       /** Set by AuthenticationMiddleware on authenticated routes. */
       principal?: Principal;
+      /** Set by validateQuery(): the validated query DTO. */
+      validatedQuery?: object;
     }
   }
 }
