@@ -11,6 +11,10 @@ export class UpdateNoteDto {
   @Optional() @IsBoolean()
   isArchived?: boolean;
 
+  /** true pins the note (the server records pinned_at), false unpins it. */
+  @Optional() @IsBoolean()
+  pinned?: boolean;
+
   /** Foreign key to categories._id; an empty string removes the category. */
   @Optional() @IsString()
   category_id?: string;

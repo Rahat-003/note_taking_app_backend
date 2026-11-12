@@ -8,6 +8,7 @@ export interface NewNote {
   title: string;
   content?: string;
   isArchived?: boolean;
+  pinned_at?: Date | null;
   category_id?: Types.ObjectId;
   tag_ids?: Types.ObjectId[];
 }
@@ -16,6 +17,8 @@ export interface NoteChanges {
   title?: string;
   content?: string;
   isArchived?: boolean;
+  /** A date pins the note, null unpins it. */
+  pinned_at?: Date | null;
   /** null removes the category. */
   category_id?: Types.ObjectId | null;
   tag_ids?: Types.ObjectId[];
@@ -39,8 +42,9 @@ export interface NoteRepository {
   /**
    * Search, filter and sort notes. Index per case:
    * - text: the { title: 'text', content: 'text' } index
-   * - one user's notes: { user_id: 1, _id: -1 } (created) or { user_id: 1, updatedAt: -1 } (updated);
-   *   in one category / with one tag: { user_id: 1, category_id: 1, _id: -1 } / { user_id: 1, tag_ids: 1, _id: -1 }
+   * - one user's notes, pinned first (pinned_at desc): { user_id: 1, pinned_at: -1, _id: -1 } (created) or
+   *   { user_id: 1, pinned_at: -1, updatedAt: -1 } (updated); in one category / with one tag:
+   *   { user_id: 1, category_id: 1, pinned_at: -1, _id: -1 } / { user_id: 1, tag_ids: 1, pinned_at: -1, _id: -1 }
    * - every user's notes: the _id index (created) or { updatedAt: -1 } (updated)
    * The isArchived filter is applied to the rows the index returns.
    */
@@ -50,7 +54,7 @@ export interface NoteRepository {
   create(note: NewNote): Promise<NoteDocument>;
   /** _id index; the note's fields without populated references (for comparing before / after a change). */
   findOwnedEntity(id: Types.ObjectId, userId: Types.ObjectId): Promise<NoteEntity | null>;
-  /** _id index; only the owner's note is updated. */
+  /** _id index; only the owner's note is updated. Changing only pinned_at / isArchived keeps updatedAt. */
   updateOwned(id: Types.ObjectId, userId: Types.ObjectId, changes: NoteChanges): Promise<NoteDocument | null>;
   /** _id index; returns the deleted note, or null when no note of this user matched. */
   deleteOwned(id: Types.ObjectId, userId: Types.ObjectId): Promise<NoteEntity | null>;

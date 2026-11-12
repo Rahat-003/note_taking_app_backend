@@ -13,6 +13,8 @@ export interface NoteEntity {
   content: string;
   /** Archived notes are kept but left out of the notes list unless asked for (?isArchived=). */
   isArchived: boolean;
+  /** When the note was pinned; null when it is not pinned. Pinned notes come first in their owner's list. */
+  pinned_at: Date | null;
   /** Foreign key to categories._id (optional). */
   category_id?: Types.ObjectId;
   /** Foreign keys to tags._id. */
@@ -38,6 +40,7 @@ const noteSchema = new Schema<NoteEntity>(
     title: { type: String, required: true, trim: true, maxlength: 200 },
     content: { type: String, default: '', maxlength: 20000 },
     isArchived: { type: Boolean, default: false, required: true },
+    pinned_at: { type: Date, default: null },
     category_id: { type: Schema.Types.ObjectId, ref: 'Category' },
     tag_ids: { type: [{ type: Schema.Types.ObjectId, ref: 'Tag' }], default: [] },
   },
@@ -47,14 +50,16 @@ const noteSchema = new Schema<NoteEntity>(
 // "My notes" sorted by created date (_id order = creation order) and countDocuments({ user_id }).
 // The isArchived filter is applied to the rows this index finds for one user (as it is on the indexes below).
 // Admin "all notes" by created date and GET/PATCH/DELETE by id use the built-in _id index.
-noteSchema.index({ user_id: 1, _id: -1 });
+// pinned_at comes right after the equality fields so one user's pinned notes (most recently pinned
+// first; null = not pinned sorts last) are read before the rest without an in-memory sort.
+noteSchema.index({ user_id: 1, pinned_at: -1, _id: -1 });
 // "My notes" sorted by updated date.
-noteSchema.index({ user_id: 1, updatedAt: -1 });
+noteSchema.index({ user_id: 1, pinned_at: -1, updatedAt: -1 });
 // Admin "all notes" sorted by updated date.
 noteSchema.index({ updatedAt: -1 });
 // "My notes" in one category / with one tag (?category_id= / ?tag_id=), newest first, and their counts.
-noteSchema.index({ user_id: 1, category_id: 1, _id: -1 });
-noteSchema.index({ user_id: 1, tag_ids: 1, _id: -1 });
+noteSchema.index({ user_id: 1, category_id: 1, pinned_at: -1, _id: -1 });
+noteSchema.index({ user_id: 1, tag_ids: 1, pinned_at: -1, _id: -1 });
 // Search by title and content (?q=). Word-based: case-insensitive, with English stemming.
 noteSchema.index({ title: 'text', content: 'text' });
 

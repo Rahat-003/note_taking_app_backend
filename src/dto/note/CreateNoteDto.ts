@@ -11,6 +11,10 @@ export class CreateNoteDto {
   @Optional() @IsBoolean()
   isArchived?: boolean;
 
+  /** true pins the note (the server records pinned_at), false unpins it. */
+  @Optional() @IsBoolean()
+  pinned?: boolean;
+
   /** Foreign key to categories._id (optional). */
   @Optional() @IsString()
   category_id?: string;

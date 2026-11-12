@@ -70,6 +70,7 @@ export class NoteServiceImpl implements NoteService {
       title: dto.title,
       content: dto.content,
       isArchived: dto.isArchived,
+      pinned_at: dto.pinned && !dto.isArchived ? new Date() : null,
       category_id: categoryId,
       tag_ids: tagIds,
     });
@@ -84,6 +85,10 @@ export class NoteServiceImpl implements NoteService {
     if (!before) throw new NotFoundException('Note not found');
 
     const changes: NoteChanges = { title: dto.title, content: dto.content, isArchived: dto.isArchived };
+    // Pinning records the time; pinning an already pinned note keeps its place. Unpinning clears it.
+    if (dto.pinned !== undefined) changes.pinned_at = dto.pinned ? (before.pinned_at ?? new Date()) : null;
+    // Archiving a note unpins it: pins belong to the active list.
+    if (dto.isArchived === true) changes.pinned_at = null;
     if (dto.category_id !== undefined) {
       changes.category_id = dto.category_id === '' ? null : await this.categories.requireExisting(dto.category_id);
     }
