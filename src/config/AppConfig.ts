@@ -36,7 +36,8 @@ export class AppConfig {
    */
   readonly corsOrigins: readonly string[] = (process.env.CORS_ORIGINS ?? 'http://localhost:5173,http://localhost:8080')
     .split(',')
-    .map((origin) => origin.trim().replace(/\/+$/, ''))
+    // Tolerate pasted values like "https://app.example.com/" (quotes, spaces, trailing slash).
+    .map((origin) => origin.trim().replace(/^["']|["']$/g, '').trim().replace(/\/+$/, ''))
     .filter(Boolean);
 
   /**
