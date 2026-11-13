@@ -6,7 +6,7 @@ import { NotFoundException } from '../../common/exceptions/NotFoundException';
 import { ObjectIds } from '../../common/ObjectIds';
 import type { Page } from '../../common/pagination/Page';
 import type { PageRequest } from '../../common/pagination/PageRequest';
-import { PermissionKey } from '../../common/PermissionKey';
+import { PERMISSION_DESCRIPTIONS, PermissionKey } from '../../common/PermissionKey';
 import { Tokens } from '../../common/Tokens';
 import type { NoteView } from '../../domain/Note';
 import type { CreateNoteDto } from '../../dto/note/CreateNoteDto';
@@ -19,7 +19,8 @@ import type { NoteService } from '../NoteService';
 import type { Principal } from '../Principal';
 
 /**
- * Own notes need notes.manage_own; reading other people's notes needs notes.read_all.
+ * Own notes: notes.manage_own to create, list and view, notes.update_own to change (edit, pin, archive),
+ * notes.delete_own to delete. Reading other people's notes needs notes.read_all.
  * Writes are always limited to the owner. Someone else's note is reported as 404, not 403,
  * so the API does not reveal that it exists.
  */
@@ -34,9 +35,8 @@ export class NoteServiceImpl implements NoteService {
   list(principal: Principal, query: NoteQueryDto, page: PageRequest): Promise<Page<NoteView>> {
     const all = query.all === 'true';
     const crossUser = all || Boolean(query.user_id);
-    if (!principal.can(crossUser ? PermissionKey.NOTES_READ_ALL : PermissionKey.NOTES_MANAGE_OWN)) {
-      throw new ForbiddenException();
-    }
+    const needed = crossUser ? PermissionKey.NOTES_READ_ALL : PermissionKey.NOTES_MANAGE_OWN;
+    if (!principal.can(needed)) throw ForbiddenException.missing(needed, PERMISSION_DESCRIPTIONS.get(needed));
     let userId: Types.ObjectId | undefined = principal.id;
     if (query.user_id) userId = ObjectIds.parse(query.user_id);
     else if (all) userId = undefined;

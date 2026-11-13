@@ -2,6 +2,7 @@ import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { container } from 'tsyringe';
 import { AuthController } from '../controllers/AuthController';
+import { ChangePasswordDto } from '../dto/auth/ChangePasswordDto';
 import { LoginDto } from '../dto/auth/LoginDto';
 import { RegisterDto } from '../dto/auth/RegisterDto';
 import { UpdateProfileDto } from '../dto/auth/UpdateProfileDto';
@@ -18,7 +19,7 @@ export function authRoutes(): Router {
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     skip: () => process.env.NODE_ENV === 'test',
-    message: { error: 'Too many attempts, try again later' },
+    message: { error: 'Too many attempts, try again later', code: 'RATE_LIMITED' },
   });
 
   const router = Router();
@@ -30,6 +31,14 @@ export function authRoutes(): Router {
     authenticate,
     validateBody(UpdateProfileDto, { strict: true }),
     handle((req, res) => controller.updateMe(req, res)),
+  );
+  // Rate limited like login: it checks the current password.
+  router.post(
+    '/me/password',
+    limiter,
+    authenticate,
+    validateBody(ChangePasswordDto),
+    handle((req, res) => controller.changePassword(req, res)),
   );
   return router;
 }

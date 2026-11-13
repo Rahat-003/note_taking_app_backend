@@ -1,5 +1,7 @@
 [
-  { "key": "notes.manage_own", "description": "Create, view, update and delete own notes" },
+  { "key": "notes.manage_own", "description": "Create, list and view own notes" },
+  { "key": "notes.update_own", "description": "Update own notes (edit, pin and archive)" },
+  { "key": "notes.delete_own", "description": "Delete own notes" },
   { "key": "notes.read_all", "description": "View everyone's notes" },
   { "key": "users.read", "description": "List and view users, view users grouped by interest" },
   { "key": "users.manage", "description": "Create, update and delete users" },

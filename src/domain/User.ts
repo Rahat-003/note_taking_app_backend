@@ -11,6 +11,8 @@ export interface UserEntity {
   /** Foreign key to roles._id. */
   role_id: Types.ObjectId;
   interests: string[];
+  /** A short self-description shown on the profile. */
+  bio: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -47,6 +49,7 @@ const userSchema = new Schema<UserEntity, UserModelType, UserMethods>(
     password: { type: String, required: true, select: false },
     role_id: { type: Schema.Types.ObjectId, ref: 'Role', required: true },
     interests: { type: [{ type: String, trim: true, lowercase: true, maxlength: 50 }], default: [] },
+    bio: { type: String, trim: true, maxlength: 500, default: '' },
   },
   {
     timestamps: true,

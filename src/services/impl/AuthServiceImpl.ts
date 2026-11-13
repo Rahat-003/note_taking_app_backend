@@ -1,4 +1,6 @@
 import { inject, injectable } from 'tsyringe';
+import { BadRequestException } from '../../common/exceptions/BadRequestException';
+import type { ChangePasswordDto } from '../../dto/auth/ChangePasswordDto';
 import { UnauthorizedException } from '../../common/exceptions/UnauthorizedException';
 import { RoleName } from '../../common/RoleName';
 import { Tokens } from '../../common/Tokens';
@@ -53,6 +55,25 @@ export class AuthServiceImpl implements AuthService {
     principal.user.set({ ...dto });
     await this.users.save(principal.user);
     return this.getSession(principal);
+  }
+
+  async changePassword(principal: Principal, dto: ChangePasswordDto): Promise<void> {
+    if (dto.newPassword !== dto.confirmPassword) {
+      throw new BadRequestException('The new password and its confirmation do not match', [
+        { field: 'confirmPassword', messages: ['does not match the new password'] },
+      ]);
+    }
+    const user = await this.users.findByEmailWithPassword(principal.user.email);
+    if (!user || !(await user.comparePassword(dto.currentPassword))) {
+      throw new BadRequestException('The current password is not correct', [{ field: 'currentPassword', messages: ['is not correct'] }]);
+    }
+    if (await user.comparePassword(dto.newPassword)) {
+      throw new BadRequestException('The new password must be different from the current one', [
+        { field: 'newPassword', messages: ['must be different from the current password'] },
+      ]);
+    }
+    user.password = dto.newPassword; // hashed by the pre-save hook
+    await this.users.save(user);
   }
 
   private async authResult(user: UserDocument): Promise<AuthResult> {

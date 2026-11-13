@@ -1,5 +1,6 @@
 import type { LoginDto } from '../dto/auth/LoginDto';
 import type { RegisterDto } from '../dto/auth/RegisterDto';
+import type { ChangePasswordDto } from '../dto/auth/ChangePasswordDto';
 import type { UpdateProfileDto } from '../dto/auth/UpdateProfileDto';
 import type { UserWithRole } from '../domain/User';
 import type { Principal } from './Principal';
@@ -20,4 +21,6 @@ export interface AuthService {
   authenticate(token: string): Promise<Principal>;
   getSession(principal: Principal): Session;
   updateProfile(principal: Principal, dto: UpdateProfileDto): Promise<Session>;
+  /** Needs the current password; the new one must differ from it and match its confirmation. */
+  changePassword(principal: Principal, dto: ChangePasswordDto): Promise<void>;
 }

@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { inject, injectable } from 'tsyringe';
 import { Tokens } from '../common/Tokens';
+import type { ChangePasswordDto } from '../dto/auth/ChangePasswordDto';
 import type { LoginDto } from '../dto/auth/LoginDto';
 import type { RegisterDto } from '../dto/auth/RegisterDto';
 import type { UpdateProfileDto } from '../dto/auth/UpdateProfileDto';
@@ -23,6 +24,11 @@ export class AuthController extends BaseController {
 
   async me(req: Request, res: Response): Promise<void> {
     res.json(this.auth.getSession(this.principal(req)));
+  }
+
+  async changePassword(req: Request, res: Response): Promise<void> {
+    await this.auth.changePassword(this.principal(req), this.body<ChangePasswordDto>(req));
+    res.status(204).end();
   }
 
   async updateMe(req: Request, res: Response): Promise<void> {

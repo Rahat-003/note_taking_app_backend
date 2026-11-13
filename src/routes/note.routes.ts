@@ -29,12 +29,13 @@ export function noteRoutes(): Router {
     authorize(PermissionKey.NOTES_MANAGE_OWN, PermissionKey.NOTES_READ_ALL),
     handle((req, res) => controller.get(req, res)),
   );
+  // Any change, including pin / archive, is an update.
   router.patch(
     '/:id',
-    authorize(PermissionKey.NOTES_MANAGE_OWN),
+    authorize(PermissionKey.NOTES_UPDATE_OWN),
     validateBody(UpdateNoteDto, { strict: true }),
     handle((req, res) => controller.update(req, res)),
   );
-  router.delete('/:id', authorize(PermissionKey.NOTES_MANAGE_OWN), handle((req, res) => controller.delete(req, res)));
+  router.delete('/:id', authorize(PermissionKey.NOTES_DELETE_OWN), handle((req, res) => controller.delete(req, res)));
   return router;
 }
