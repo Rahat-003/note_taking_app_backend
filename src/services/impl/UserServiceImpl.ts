@@ -33,8 +33,8 @@ export class UserServiceImpl implements UserService {
     return this.users.groupByInterest(interest.trim().toLowerCase(), page);
   }
 
-  list(page: PageRequest): Promise<Page<UserView>> {
-    return this.users.findAll(page);
+  list(page: PageRequest, search?: string): Promise<Page<UserView>> {
+    return this.users.findAll(page, search || undefined);
   }
 
   async get(userId: string): Promise<UserWithRole> {

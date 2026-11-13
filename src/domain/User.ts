@@ -68,6 +68,9 @@ userSchema.index({ email: 1 }, { unique: true });
 userSchema.index({ interests: 1 });
 // "Is this role still assigned?" check before deleting a role.
 userSchema.index({ role_id: 1 });
+// User search (?q=, e.g. the admin's "filter notes by user" picker): the name half of the $or,
+// matched on the index keys, and its results sorted by name.
+userSchema.index({ name: 1 });
 // Admin user listing and GET by id use the built-in _id index: no extra index.
 
 /** The user's role document, loaded with populate('role'). */

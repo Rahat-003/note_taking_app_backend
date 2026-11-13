@@ -3,6 +3,7 @@ import { inject, injectable } from 'tsyringe';
 import { Tokens } from '../common/Tokens';
 import type { CreateUserDto } from '../dto/user/CreateUserDto';
 import type { UpdateUserDto } from '../dto/user/UpdateUserDto';
+import type { UserQueryDto } from '../dto/user/UserQueryDto';
 import type { UserService } from '../services/UserService';
 import { BaseController } from './BaseController';
 
@@ -19,7 +20,7 @@ export class UserController extends BaseController {
   }
 
   async list(req: Request, res: Response): Promise<void> {
-    res.json(await this.users.list(this.pageRequest(req)));
+    res.json(await this.users.list(this.pageRequest(req), this.query<UserQueryDto>(req).q));
   }
 
   async get(req: Request, res: Response): Promise<void> {

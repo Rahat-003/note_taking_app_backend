@@ -1,12 +1,23 @@
-import type { Types } from 'mongoose';
+import type { FilterQuery, Types } from 'mongoose';
 import { injectable } from 'tsyringe';
 import { Page } from '../../common/pagination/Page';
 import { PageRequest } from '../../common/pagination/PageRequest';
-import { type RoleSummary, type UserDocument, UserModel, type UserView, type UserWithRole } from '../../domain/User';
+import { type RoleSummary, type UserDocument, type UserEntity, UserModel, type UserView, type UserWithRole } from '../../domain/User';
 import { UserAggregations } from '../aggregations/UserAggregations';
 import type { InterestGroup, NewUser, UserRepository } from '../UserRepository';
 
 const ROLE_FIELDS = 'name';
+
+const escapeRegex = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * Users whose name has a word starting with `search`, or whose email starts with it (emails are stored
+ * lowercase). Each $or branch is matched on its own index's keys, so no collection scan.
+ */
+export function userSearchFilter(search: string): FilterQuery<UserEntity> {
+  const term = escapeRegex(search.trim());
+  return { $or: [{ name: { $regex: `(^|\\s)${term}`, $options: 'i' } }, { email: { $regex: `^${term.toLowerCase()}` } }] };
+}
 
 @injectable()
 export class MongoUserRepository implements UserRepository {
@@ -30,17 +41,18 @@ export class MongoUserRepository implements UserRepository {
     return Boolean(await UserModel.exists({ role_id: roleId }));
   }
 
-  async findAll(page: PageRequest): Promise<Page<UserView>> {
+  async findAll(page: PageRequest, search?: string): Promise<Page<UserView>> {
+    const filter = search ? userSearchFilter(search) : {};
     const [data, total] = await Promise.all([
-      UserModel.find()
-        .sort({ _id: -1 })
+      UserModel.find(filter)
+        .sort(search ? { name: 1, _id: 1 } : { _id: -1 })
         .skip(page.skip)
         .limit(page.limit)
         .select('-__v')
         .populate('role', ROLE_FIELDS)
         .lean<UserView[]>()
         .exec(),
-      UserModel.estimatedDocumentCount().exec(),
+      search ? UserModel.countDocuments(filter).exec() : UserModel.estimatedDocumentCount().exec(),
     ]);
     return Page.of(data, total, page);
   }

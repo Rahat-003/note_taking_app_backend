@@ -7,6 +7,7 @@ import { container } from '../container';
 import { AppConfig } from '../config/AppConfig';
 import { Database } from '../database/Database';
 import { Migrator } from '../database/Migrator';
+import { userSearchFilter } from '../repositories/mongo/MongoUserRepository';
 import { CategoryModel } from '../domain/Category';
 import { NoteModel } from '../domain/Note';
 import { PermissionModel } from '../domain/Permission';
@@ -111,6 +112,8 @@ async function main(): Promise<void> {
     await report('login: users.findOne({email})', UserModel.findOne({ email: user.email }).explain(stats));
     await report('auth / GET user: users.findById', UserModel.findById(user._id).explain(stats));
     await report('admin list users: sort _id desc', UserModel.find().sort({ _id: -1 }).limit(limit).explain(stats));
+    await report('user search ?q=user 1 (name or email)', UserModel.find(userSearchFilter('user 1')).sort({ name: 1, _id: 1 }).limit(limit).explain(stats));
+    await report('user search count', UserModel.collection.aggregate([{ $match: userSearchFilter('user 1') }, { $count: 'n' }]).explain(stats));
     await report('role still assigned?: users.exists({role_id})', UserModel.findOne({ role_id: user.role_id }).select('_id').explain(stats));
     await report('my notes: find({user_id}).sort(pinned, _id desc)', NoteModel.find({ user_id: user._id }).sort({ pinned_at: -1, _id: -1 }).limit(limit).explain(stats));
     await report(
