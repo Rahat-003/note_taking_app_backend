@@ -17,5 +17,5 @@
     "forceConsistentCasingInFileNames": true,
     "types": ["node"]
   },
-  "include": ["src", "migrations", "bootstrap", "test"]
+  "include": ["src", "migrations", "bootstrap"]
 }

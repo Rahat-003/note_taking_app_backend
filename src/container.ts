@@ -4,6 +4,7 @@ import { Tokens } from './common/Tokens';
 import { MongoCategoryRepository } from './repositories/mongo/MongoCategoryRepository';
 import { MongoNoteRepository } from './repositories/mongo/MongoNoteRepository';
 import { MongoPermissionRepository } from './repositories/mongo/MongoPermissionRepository';
+import { MongoPostRepository } from './repositories/mongo/MongoPostRepository';
 import { MongoRolePermissionRepository } from './repositories/mongo/MongoRolePermissionRepository';
 import { MongoRoleRepository } from './repositories/mongo/MongoRoleRepository';
 import { MongoTagRepository } from './repositories/mongo/MongoTagRepository';
@@ -15,6 +16,7 @@ import { AuthorizationServiceImpl } from './services/impl/AuthorizationServiceIm
 import { CategoryServiceImpl } from './services/impl/CategoryServiceImpl';
 import { NoteServiceImpl } from './services/impl/NoteServiceImpl';
 import { PermissionServiceImpl } from './services/impl/PermissionServiceImpl';
+import { PostServiceImpl } from './services/impl/PostServiceImpl';
 import { RoleServiceImpl } from './services/impl/RoleServiceImpl';
 import { TagServiceImpl } from './services/impl/TagServiceImpl';
 import { TokenServiceImpl } from './services/impl/TokenServiceImpl';
@@ -24,6 +26,7 @@ import { UserServiceImpl } from './services/impl/UserServiceImpl';
 const bindings: Array<[symbol, new (...args: never[]) => unknown]> = [
   [Tokens.UserRepository, MongoUserRepository],
   [Tokens.NoteRepository, MongoNoteRepository],
+  [Tokens.PostRepository, MongoPostRepository],
   [Tokens.RoleRepository, MongoRoleRepository],
   [Tokens.PermissionRepository, MongoPermissionRepository],
   [Tokens.RolePermissionRepository, MongoRolePermissionRepository],
@@ -36,6 +39,7 @@ const bindings: Array<[symbol, new (...args: never[]) => unknown]> = [
   [Tokens.AuthService, AuthServiceImpl],
   [Tokens.UserService, UserServiceImpl],
   [Tokens.NoteService, NoteServiceImpl],
+  [Tokens.PostService, PostServiceImpl],
   [Tokens.RoleService, RoleServiceImpl],
   [Tokens.PermissionService, PermissionServiceImpl],
   [Tokens.CategoryService, CategoryServiceImpl],

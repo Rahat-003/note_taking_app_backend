@@ -1,8 +1,10 @@
 import mongoose, { type mongo } from 'mongoose';
 import { singleton } from 'tsyringe';
+import type { MongoPoolOptions } from '../config/AppConfig';
 import { CategoryModel } from '../domain/Category';
 import { NoteModel } from '../domain/Note';
 import { PermissionModel } from '../domain/Permission';
+import { PostModel } from '../domain/Post';
 import { RoleModel } from '../domain/Role';
 import { RolePermissionModel } from '../domain/RolePermission';
 import { TagModel } from '../domain/Tag';
@@ -15,6 +17,7 @@ export class Database {
   static readonly models = [
     UserModel,
     NoteModel,
+    PostModel,
     RoleModel,
     PermissionModel,
     RolePermissionModel,
@@ -24,12 +27,14 @@ export class Database {
     UserTagModel,
   ] as const;
 
-  async connect(uri: string): Promise<void> {
+  /** pool: driver connection pool settings (AppConfig.mongoPool for the API, mongoScriptPool for scripts). */
+  async connect(uri: string, pool: MongoPoolOptions): Promise<void> {
     // Collections, validators and indexes are created only by migrations (npm run migrate),
     // so Mongoose must not create them implicitly.
-    await mongoose.connect(uri, { autoIndex: false, autoCreate: false });
+    await mongoose.connect(uri, { autoIndex: false, autoCreate: false, ...pool });
   }
 
+  /** Closes every pooled connection; in-flight operations finish first. */
   async disconnect(): Promise<void> {
     await mongoose.disconnect();
   }

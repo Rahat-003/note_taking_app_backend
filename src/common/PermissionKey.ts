@@ -7,6 +7,7 @@ export enum PermissionKey {
   NOTES_UPDATE_OWN = 'notes.update_own',
   NOTES_DELETE_OWN = 'notes.delete_own',
   NOTES_READ_ALL = 'notes.read_all',
+  POSTS_CREATE = 'posts.create',
   USERS_READ = 'users.read',
   USERS_MANAGE = 'users.manage',
   ROLES_MANAGE = 'roles.manage',

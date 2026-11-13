@@ -11,8 +11,7 @@
     "migrate": "tsx src/scripts/migrate.ts",
     "bootstrap": "tsx bootstrap/index.ts",
     "setup": "npm run migrate && npm run bootstrap",
-    "explain": "tsx src/scripts/explain.ts",
-    "test": "node --import tsx --test test/*.test.ts"
+    "explain": "tsx src/scripts/explain.ts"
   },
   "keywords": [],
   "author": "",
@@ -37,8 +36,6 @@
     "@types/express": "^4.17.25",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.19.2",
-    "@types/supertest": "^7.2.1",
-    "supertest": "^7.3.2",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   },

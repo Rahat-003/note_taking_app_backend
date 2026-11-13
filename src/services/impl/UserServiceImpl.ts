@@ -12,7 +12,7 @@ import type { CreateUserDto } from '../../dto/user/CreateUserDto';
 import type { UpdateUserDto } from '../../dto/user/UpdateUserDto';
 import type { UserStatusDto } from '../../dto/user/UserStatusDto';
 import type { RoleRepository } from '../../repositories/RoleRepository';
-import type { InterestGroup, UserRepository } from '../../repositories/UserRepository';
+import type { InterestGroup, UserPosts, UserRepository } from '../../repositories/UserRepository';
 import type { AuthorizationService } from '../AuthorizationService';
 import type { Principal } from '../Principal';
 import type { UserService } from '../UserService';
@@ -27,6 +27,12 @@ export class UserServiceImpl implements UserService {
 
   groupByInterest(interest: string, page: PageRequest): Promise<Page<InterestGroup>> {
     return this.users.groupByInterest(interest.trim().toLowerCase(), page);
+  }
+
+  async getPosts(userId: string, page: PageRequest): Promise<UserPosts> {
+    const result = await this.users.findWithPosts(ObjectIds.parse(userId), page);
+    if (!result) throw new NotFoundException('User not found');
+    return result;
   }
 
   list(page: PageRequest, search?: string): Promise<Page<UserView>> {

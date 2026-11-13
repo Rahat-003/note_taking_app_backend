@@ -4,11 +4,13 @@ import type { UserView, UserWithRole } from '../domain/User';
 import type { CreateUserDto } from '../dto/user/CreateUserDto';
 import type { UpdateUserDto } from '../dto/user/UpdateUserDto';
 import type { UserStatusDto } from '../dto/user/UserStatusDto';
-import type { InterestGroup } from '../repositories/UserRepository';
+import type { InterestGroup, UserPosts } from '../repositories/UserRepository';
 import type { Principal } from './Principal';
 
 export interface UserService {
   groupByInterest(interest: string, page: PageRequest): Promise<Page<InterestGroup>>;
+  /** Scenario 2: the user's posts (404 when the user doesn't exist). */
+  getPosts(userId: string, page: PageRequest): Promise<UserPosts>;
   /** search: email prefix. */
   list(page: PageRequest, search?: string): Promise<Page<UserView>>;
   get(userId: string): Promise<UserWithRole>;

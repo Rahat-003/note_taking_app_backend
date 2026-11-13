@@ -1,4 +1,4 @@
-import type { PipelineStage } from 'mongoose';
+import type { PipelineStage, Types } from 'mongoose';
 
 export class UserAggregations {
   private constructor() {}
@@ -38,5 +38,42 @@ export class UserAggregations {
     );
 
     return pipeline;
+  }
+
+  /**
+   * Scenario 2: one user's posts, newest first, in a single pipeline with $lookup.
+   * $match on _id uses the _id index; both lookups use posts { user_id: 1, _id: -1 }
+   * (equality on user_id, then _id order for the sort, skip and limit; the second only counts).
+   * A missing user gives no row, which the service reports as 404.
+   */
+  static userPosts(userId: Types.ObjectId, skip: number, limit: number): PipelineStage[] {
+    return [
+      { $match: { _id: userId } },
+      { $project: { name: 1, email: 1 } },
+      {
+        $lookup: {
+          from: 'posts',
+          localField: '_id',
+          foreignField: 'user_id',
+          as: 'posts',
+          pipeline: [
+            { $sort: { _id: -1 } },
+            { $skip: skip },
+            { $limit: limit },
+            { $project: { title: 1, body: 1, createdAt: 1, updatedAt: 1 } },
+          ],
+        },
+      },
+      {
+        $lookup: {
+          from: 'posts',
+          localField: '_id',
+          foreignField: 'user_id',
+          as: 'total',
+          pipeline: [{ $count: 'count' }],
+        },
+      },
+      { $set: { total: { $ifNull: [{ $first: '$total.count' }, 0] } } },
+    ];
   }
 }

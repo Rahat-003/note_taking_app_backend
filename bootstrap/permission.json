@@ -3,6 +3,7 @@
   { "key": "notes.update_own", "description": "Update own notes (edit, pin and archive)" },
   { "key": "notes.delete_own", "description": "Delete own notes" },
   { "key": "notes.read_all", "description": "View everyone's notes" },
+  { "key": "posts.create", "description": "Write posts (everyone can read them)" },
   { "key": "users.read", "description": "List and view users, view users grouped by interest" },
   { "key": "users.manage", "description": "Create and update users, and activate or deactivate them" },
   { "key": "roles.manage", "description": "Create roles and assign permissions to them" }

@@ -20,6 +20,12 @@ export class UserController extends BaseController {
     res.json(await this.users.groupByInterest(interest, this.pageRequest(req)));
   }
 
+  /** Aggregation Scenario 2: { user, data: posts, page, limit, total, totalPages }. */
+  async posts(req: Request, res: Response): Promise<void> {
+    const { user, posts } = await this.users.getPosts(this.param(req, 'id'), this.pageRequest(req));
+    res.json({ user, ...posts });
+  }
+
   async list(req: Request, res: Response): Promise<void> {
     res.json(await this.users.list(this.pageRequest(req), this.query<UserQueryDto>(req).q));
   }

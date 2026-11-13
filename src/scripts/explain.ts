@@ -10,6 +10,7 @@ import { Migrator } from '../database/Migrator';
 import { userSearchFilter } from '../repositories/mongo/MongoUserRepository';
 import { CategoryModel } from '../domain/Category';
 import { NoteModel } from '../domain/Note';
+import { PostModel } from '../domain/Post';
 import { PermissionModel } from '../domain/Permission';
 import { RoleModel } from '../domain/Role';
 import { RolePermissionModel } from '../domain/RolePermission';
@@ -85,13 +86,16 @@ async function fillSampleData() {
   };
   await UserCategoryModel.insertMany(count('category_id', (note) => [note.category_id]));
   await UserTagModel.insertMany(count('tag_id', (note) => note.tag_ids));
+  await PostModel.insertMany(
+    users.flatMap((u) => Array.from({ length: 3 }, (_, i) => ({ user_id: u._id, title: `p${i}`, body: 'b' }))),
+  );
   return users[0]!;
 }
 
 async function main(): Promise<void> {
   const uri = container.resolve(AppConfig).mongoUri.replace(/\/([^/?]+)(\?|$)/, '/$1_explain$2');
   const database = container.resolve(Database);
-  await database.connect(uri);
+  await database.connect(uri, container.resolve(AppConfig).mongoScriptPool);
   try {
     process.env.ADMIN_PASSWORD ||= 'explain-only-password';
     await container.resolve(Migrator).migrate();
@@ -155,6 +159,7 @@ async function main(): Promise<void> {
       'Scenario 1: group by interests (?interest=chess)',
       UserModel.aggregate(UserAggregations.usersByInterest('chess', skip, limit)).explain(stats),
     );
+    await report('Scenario 2: user posts ($lookup)', UserModel.aggregate(UserAggregations.userPosts(user._id, skip, limit)).explain(stats));
   } finally {
     await database.drop();
     await database.disconnect();
