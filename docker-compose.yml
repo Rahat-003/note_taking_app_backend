@@ -25,6 +25,7 @@ services:
       MONGO_URI: mongodb://mongo:27017/secure_notes
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in backend/.env (see .env.example)}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:8080}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in backend/.env (used by bootstrap/user.json)}
     ports:
       - "${APP_PORT:-3000}:3000"
