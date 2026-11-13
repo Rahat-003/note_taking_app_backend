@@ -17,20 +17,12 @@ export class MongoNoteRepository implements NoteRepository {
     if (criteria.isArchived !== undefined) filter.isArchived = criteria.isArchived;
     if (criteria.categoryId) filter.category_id = criteria.categoryId;
     if (criteria.tagId) filter.tag_ids = criteria.tagId;
-    if (criteria.text) filter.$text = { $search: criteria.text };
 
     const direction = criteria.order === 'asc' ? 1 : -1;
     // Created-date order is _id order (ObjectIds embed their creation time), so it reuses the _id-based indexes.
-    const byDate: Record<string, 1 | -1> = criteria.sort === 'updatedAt' ? { updatedAt: direction } : { _id: direction };
-    let sort: Record<string, 1 | -1>;
-    if (criteria.sort === 'archivedAt') {
-      // The archive (one user, isArchived: true): the partial { user_id, archivedAt, _id } index. Archived notes are never pinned.
-      sort = { archivedAt: direction, _id: direction };
-    } else {
-      // In one user's list, pinned notes come first, most recently pinned first (null = not pinned sorts last).
-      // Pins are personal, so a list across users keeps plain date order.
-      sort = criteria.userId ? { pinned_at: -1, ...byDate } : byDate;
-    }
+    // In one user's list, pinned notes come first, most recently pinned first (null = not pinned sorts last).
+    // Pins are personal, so a list across users keeps plain date order.
+    const sort: Record<string, 1 | -1> = criteria.userId ? { pinned_at: -1, _id: direction } : { _id: direction };
 
     const [data, total] = await Promise.all([
       withReferences(NoteModel.find(filter).sort(sort).skip(page.skip).limit(page.limit)).lean<NoteView[]>().exec(),
@@ -58,7 +50,7 @@ export class MongoNoteRepository implements NoteRepository {
     if (Object.keys(set).length) update.$set = set;
     if (categoryId === null) update.$unset = { category_id: 1 };
     // Pinning / archiving is not an edit of the note: updatedAt only moves when its content changes.
-    const edited = Object.keys(changes).some((key) => !['pinned_at', 'isArchived', 'archivedAt'].includes(key));
+    const edited = Object.keys(changes).some((key) => key !== 'pinned_at' && key !== 'isArchived');
     return NoteModel.findOneAndUpdate({ _id: id, user_id: userId }, update, { new: true, runValidators: true, timestamps: edited }).exec();
   }
 
@@ -66,11 +58,15 @@ export class MongoNoteRepository implements NoteRepository {
     return NoteModel.findOneAndDelete({ _id: id, user_id: userId }).lean<NoteEntity>().exec();
   }
 
+  async deleteByUser(userId: Types.ObjectId): Promise<void> {
+    await NoteModel.deleteMany({ user_id: userId }).exec();
+  }
+
   private count(filter: FilterQuery<NoteEntity>, criteria: NoteSearchCriteria): Promise<number> {
     if (!Object.keys(filter).length) return NoteModel.estimatedDocumentCount().exec(); // metadata, no scan
-    // With a user or text condition the planner picks the matching index. A cross-user filter on
-    // isArchived / category / tag alone has no index of its own, so walk the _id index instead of the collection.
+    // With a user the planner uses { user_id, pinned_at, _id }. A cross-user filter on isArchived / category /
+    // tag alone has no index of its own, so walk the _id index instead of the collection.
     const query = NoteModel.countDocuments(filter);
-    return (criteria.userId || criteria.text ? query : query.hint({ _id: 1 })).exec();
+    return (criteria.userId ? query : query.hint({ _id: 1 })).exec();
   }
 }

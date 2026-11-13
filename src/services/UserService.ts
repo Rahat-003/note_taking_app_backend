@@ -18,4 +18,6 @@ export interface UserService {
   update(principal: Principal, userId: string, dto: UpdateUserDto): Promise<UserWithRole>;
   /** Activates or deactivates another user (not yourself, not someone with more permissions). */
   setStatus(principal: Principal, userId: string, dto: UserStatusDto): Promise<UserWithRole>;
+  /** Removes another user (not yourself, not someone with more permissions) with their notes, posts and label counts. */
+  delete(principal: Principal, userId: string): Promise<void>;
 }

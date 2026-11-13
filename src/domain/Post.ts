@@ -12,6 +12,14 @@ export interface PostEntity {
 
 export type PostDocument = HydratedDocument<PostEntity>;
 
+export interface PostAuthor {
+  _id: Types.ObjectId;
+  name: string;
+}
+
+/** A post in the feed, with its `user` virtual (the author) populated. */
+export type PostView = PostEntity & { user: PostAuthor | null };
+
 /** A post as returned inside the Scenario 2 $lookup. */
 export type PostSummary = Omit<PostEntity, 'user_id'>;
 
@@ -24,8 +32,12 @@ const postSchema = new Schema<PostEntity>(
   { timestamps: true, versionKey: false },
 );
 
-// Scenario 2: the $lookup matches posts on user_id (foreignField) and pages them newest first
+// The feed of everyone's posts (newest first) uses the built-in _id index; populating each author uses
+// the users _id index. Scenario 2: the $lookup matches posts on user_id (foreignField) and pages them newest first
 // (_id order = creation order); its second $lookup counts them. One index serves all three.
 postSchema.index({ user_id: 1, _id: -1 });
+
+/** The author's user document, loaded with populate('user'). */
+postSchema.virtual('user', { ref: 'User', localField: 'user_id', foreignField: '_id', justOne: true });
 
 export const PostModel = model<PostEntity>('Post', postSchema);

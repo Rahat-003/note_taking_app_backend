@@ -1,6 +1,5 @@
 import type { Types } from 'mongoose';
 import { inject, injectable } from 'tsyringe';
-import { BadRequestException } from '../../common/exceptions/BadRequestException';
 import { ForbiddenException } from '../../common/exceptions/ForbiddenException';
 import { NotFoundException } from '../../common/exceptions/NotFoundException';
 import { ObjectIds } from '../../common/ObjectIds';
@@ -40,20 +39,14 @@ export class NoteServiceImpl implements NoteService {
     let userId: Types.ObjectId | undefined = principal.id;
     if (query.user_id) userId = ObjectIds.parse(query.user_id);
     else if (all) userId = undefined;
-    // The archive order exists for one user's archive only (its index is partial on isArchived: true).
-    if (query.sort === 'archivedAt' && (!userId || query.isArchived !== 'true')) {
-      throw new BadRequestException('sort=archivedAt needs isArchived=true and one user\'s notes');
-    }
 
     return this.notes.search(
       {
         userId,
-        text: query.q,
         // Archived notes stay out of the list unless asked for.
         isArchived: query.isArchived === 'all' ? undefined : query.isArchived === 'true',
         categoryId: query.category_id ? ObjectIds.parse(query.category_id) : undefined,
         tagId: query.tag_id ? ObjectIds.parse(query.tag_id) : undefined,
-        sort: query.sort ?? 'createdAt',
         order: query.order ?? 'desc',
       },
       page,
@@ -75,7 +68,6 @@ export class NoteServiceImpl implements NoteService {
       title: dto.title,
       content: dto.content,
       isArchived: dto.isArchived,
-      archivedAt: dto.isArchived ? new Date() : null,
       pinned_at: dto.pinned && !dto.isArchived ? new Date() : null,
       category_id: categoryId,
       tag_ids: tagIds,
@@ -93,12 +85,8 @@ export class NoteServiceImpl implements NoteService {
     const changes: NoteChanges = { title: dto.title, content: dto.content, isArchived: dto.isArchived };
     // Pinning records the time; pinning an already pinned note keeps its place. Unpinning clears it.
     if (dto.pinned !== undefined) changes.pinned_at = dto.pinned ? (before.pinned_at ?? new Date()) : null;
-    // Archiving records the time (archiving an archived note keeps it) and unpins: pins belong to the active list.
-    if (dto.isArchived === true) {
-      changes.pinned_at = null;
-      changes.archivedAt = before.isArchived ? before.archivedAt : new Date();
-    }
-    if (dto.isArchived === false) changes.archivedAt = null;
+    // Archiving a note unpins it: pins belong to the active list.
+    if (dto.isArchived === true) changes.pinned_at = null;
     if (dto.category_id !== undefined) {
       changes.category_id = dto.category_id === '' ? null : await this.categories.requireExisting(dto.category_id);
     }

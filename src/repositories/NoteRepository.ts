@@ -1,14 +1,13 @@
 import type { Types } from 'mongoose';
 import type { Page } from '../common/pagination/Page';
 import type { PageRequest } from '../common/pagination/PageRequest';
-import type { NoteDocument, NoteEntity, NoteSortField, NoteView } from '../domain/Note';
+import type { NoteDocument, NoteEntity, NoteView } from '../domain/Note';
 
 export interface NewNote {
   user_id: Types.ObjectId;
   title: string;
   content?: string;
   isArchived?: boolean;
-  archivedAt?: Date | null;
   pinned_at?: Date | null;
   category_id?: Types.ObjectId;
   tag_ids?: Types.ObjectId[];
@@ -18,8 +17,6 @@ export interface NoteChanges {
   title?: string;
   content?: string;
   isArchived?: boolean;
-  /** Set together with isArchived: the archive time, or null when moved out of the archive. */
-  archivedAt?: Date | null;
   /** A date pins the note, null unpins it. */
   pinned_at?: Date | null;
   /** null removes the category. */
@@ -30,26 +27,21 @@ export interface NoteChanges {
 export interface NoteSearchCriteria {
   /** One user's notes; omitted means every user's notes. */
   userId?: Types.ObjectId;
-  /** Full-text search on title and content. */
-  text?: string;
   /** true: archived notes only; false: non-archived only; undefined: both. */
   isArchived?: boolean;
   categoryId?: Types.ObjectId;
   /** Notes carrying this tag. */
   tagId?: Types.ObjectId;
-  sort: NoteSortField;
+  /** By created date (_id order). */
   order: 'asc' | 'desc';
 }
 
 export interface NoteRepository {
   /**
-   * Search, filter and sort notes. Index per case:
-   * - text: the { title: 'text', content: 'text' } index
-   * - one user's notes, pinned first (pinned_at desc): { user_id: 1, pinned_at: -1, _id: -1 } (created) or
-   *   { user_id: 1, pinned_at: -1, updatedAt: -1 } (updated); in one category / with one tag:
-   *   { user_id: 1, category_id: 1, pinned_at: -1, _id: -1 } / { user_id: 1, tag_ids: 1, pinned_at: -1, _id: -1 }
-   * - every user's notes: the _id index (created) or { updatedAt: -1 } (updated)
-   * The isArchived filter is applied to the rows the index returns.
+   * List and filter notes by created date. Index per case:
+   * - one user's notes, pinned first: { user_id: 1, pinned_at: -1, _id: -1 }
+   * - every user's notes: the _id index
+   * The isArchived / category / tag filters are applied to the rows the index returns.
    */
   search(criteria: NoteSearchCriteria, page: PageRequest): Promise<Page<NoteView>>;
   /** _id index; when userId is given the note must also belong to that user. */
@@ -61,4 +53,6 @@ export interface NoteRepository {
   updateOwned(id: Types.ObjectId, userId: Types.ObjectId, changes: NoteChanges): Promise<NoteDocument | null>;
   /** _id index; returns the deleted note, or null when no note of this user matched. */
   deleteOwned(id: Types.ObjectId, userId: Types.ObjectId): Promise<NoteEntity | null>;
+  /** Cascade when a user is removed: { user_id: 1, pinned_at: -1, _id: -1 } (user_id prefix). */
+  deleteByUser(userId: Types.ObjectId): Promise<void>;
 }

@@ -56,4 +56,8 @@ export abstract class MongoUserLabelRepository implements UserLabelRepository {
     );
     await this.model.deleteMany({ user_id: userId, [this.labelField]: { $in: [...labelIds] }, noteCount: { $lte: 0 } }).exec();
   }
+
+  async deleteByUser(userId: Types.ObjectId): Promise<void> {
+    await this.model.deleteMany({ user_id: userId }).exec();
+  }
 }

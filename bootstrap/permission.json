@@ -4,7 +4,10 @@
   { "key": "notes.delete_own", "description": "Delete own notes" },
   { "key": "notes.read_all", "description": "View everyone's notes" },
   { "key": "posts.create", "description": "Write posts (everyone can read them)" },
+  { "key": "posts.update_own", "description": "Edit own posts" },
+  { "key": "posts.delete_own", "description": "Delete own posts" },
+  { "key": "posts.delete_any", "description": "Delete anyone's posts (moderation)" },
   { "key": "users.read", "description": "List and view users, view users grouped by interest" },
-  { "key": "users.manage", "description": "Create and update users, and activate or deactivate them" },
+  { "key": "users.manage", "description": "Create, update, deactivate and remove users" },
   { "key": "roles.manage", "description": "Create roles and assign permissions to them" }
 ]

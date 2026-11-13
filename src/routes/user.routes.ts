@@ -30,6 +30,7 @@ export function userRoutes(): Router {
     validateBody(UpdateUserDto, { strict: true }),
     handle((req, res) => controller.update(req, res)),
   );
+  router.delete('/:id', authorize(USERS_MANAGE), handle((req, res) => controller.delete(req, res)));
   router.patch(
     '/:id/status',
     authorize(USERS_MANAGE),
