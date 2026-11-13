@@ -1,10 +1,9 @@
 // Creates every collection with a $jsonSchema validator, then builds the indexes declared with
 // schema.index() in src/domain. Re-running on existing collections only re-applies the validators.
-import type { Model, mongo } from 'mongoose';
+import mongoose, { type Model, type mongo } from 'mongoose';
 import type { Migration } from '../src/database/Migration';
 import { NoteModel } from '../src/domain/Note';
 import { PermissionModel } from '../src/domain/Permission';
-import { PostModel } from '../src/domain/Post';
 import { RoleModel } from '../src/domain/Role';
 import { RolePermissionModel } from '../src/domain/RolePermission';
 import { UserModel } from '../src/domain/User';
@@ -14,6 +13,18 @@ type JsonSchema = Record<string, unknown>;
 const str = (maxLength: number, minLength = 0): JsonSchema => ({ bsonType: 'string', minLength, maxLength });
 const objectId: JsonSchema = { bsonType: 'objectId' };
 const date: JsonSchema = { bsonType: 'date' };
+
+// Posts were removed from the app (migration 008 drops the collection). This migration keeps a
+// local model of the original posts collection so that a fresh database still migrates step by step.
+const LegacyPostModel: Model<any> =
+  mongoose.models.LegacyPost ??
+  mongoose.model(
+    'LegacyPost',
+    new mongoose.Schema({ user_id: mongoose.Schema.Types.ObjectId }, { collection: 'posts', autoIndex: false, autoCreate: false }).index({
+      user_id: 1,
+      _id: -1,
+    }),
+  );
 
 const collections: Array<{ model: Model<any>; schema: { required: string[]; properties: Record<string, JsonSchema> } }> = [
   {
@@ -40,7 +51,7 @@ const collections: Array<{ model: Model<any>; schema: { required: string[]; prop
     },
   },
   {
-    model: PostModel,
+    model: LegacyPostModel,
     schema: {
       required: ['author', 'title', 'body'],
       properties: { author: objectId, title: str(200, 1), body: str(20000, 1), createdAt: date, updatedAt: date },

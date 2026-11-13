@@ -22,9 +22,15 @@ export class MongoNoteRepository implements NoteRepository {
     const direction = criteria.order === 'asc' ? 1 : -1;
     // Created-date order is _id order (ObjectIds embed their creation time), so it reuses the _id-based indexes.
     const byDate: Record<string, 1 | -1> = criteria.sort === 'updatedAt' ? { updatedAt: direction } : { _id: direction };
-    // In one user's list, pinned notes come first, most recently pinned first (null = not pinned sorts last).
-    // Pins are personal, so a list across users keeps plain date order.
-    const sort: Record<string, 1 | -1> = criteria.userId ? { pinned_at: -1, ...byDate } : byDate;
+    let sort: Record<string, 1 | -1>;
+    if (criteria.sort === 'archivedAt') {
+      // The archive (one user, isArchived: true): the partial { user_id, archivedAt, _id } index. Archived notes are never pinned.
+      sort = { archivedAt: direction, _id: direction };
+    } else {
+      // In one user's list, pinned notes come first, most recently pinned first (null = not pinned sorts last).
+      // Pins are personal, so a list across users keeps plain date order.
+      sort = criteria.userId ? { pinned_at: -1, ...byDate } : byDate;
+    }
 
     const [data, total] = await Promise.all([
       withReferences(NoteModel.find(filter).sort(sort).skip(page.skip).limit(page.limit)).lean<NoteView[]>().exec(),
@@ -52,7 +58,7 @@ export class MongoNoteRepository implements NoteRepository {
     if (Object.keys(set).length) update.$set = set;
     if (categoryId === null) update.$unset = { category_id: 1 };
     // Pinning / archiving is not an edit of the note: updatedAt only moves when its content changes.
-    const edited = Object.keys(changes).some((key) => key !== 'pinned_at' && key !== 'isArchived');
+    const edited = Object.keys(changes).some((key) => !['pinned_at', 'isArchived', 'archivedAt'].includes(key));
     return NoteModel.findOneAndUpdate({ _id: id, user_id: userId }, update, { new: true, runValidators: true, timestamps: edited }).exec();
   }
 

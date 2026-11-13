@@ -8,6 +8,7 @@ export interface NewNote {
   title: string;
   content?: string;
   isArchived?: boolean;
+  archivedAt?: Date | null;
   pinned_at?: Date | null;
   category_id?: Types.ObjectId;
   tag_ids?: Types.ObjectId[];
@@ -17,6 +18,8 @@ export interface NoteChanges {
   title?: string;
   content?: string;
   isArchived?: boolean;
+  /** Set together with isArchived: the archive time, or null when moved out of the archive. */
+  archivedAt?: Date | null;
   /** A date pins the note, null unpins it. */
   pinned_at?: Date | null;
   /** null removes the category. */

@@ -1,7 +1,6 @@
 import type { Types } from 'mongoose';
 import type { Page } from '../common/pagination/Page';
 import type { PageRequest } from '../common/pagination/PageRequest';
-import type { PostSummary } from '../domain/Post';
 import type { UserDocument, UserSummary, UserView, UserWithRole } from '../domain/User';
 
 export interface NewUser {
@@ -16,11 +15,6 @@ export interface InterestGroup {
   interest: string;
   count: number;
   users: UserSummary[];
-}
-
-export interface UserPosts {
-  user: UserSummary;
-  posts: Page<PostSummary>;
 }
 
 export interface UserRepository {
@@ -43,6 +37,4 @@ export interface UserRepository {
   deleteById(id: Types.ObjectId): Promise<void>;
   /** Aggregation Scenario 1: a single aggregate() on the { interests: 1 } multikey index. */
   groupByInterest(interest: string, page: PageRequest): Promise<Page<InterestGroup>>;
-  /** Aggregation Scenario 2: a single aggregate() with $lookup into posts ({ user_id: 1, _id: -1 }). */
-  findWithPosts(userId: Types.ObjectId, page: PageRequest): Promise<UserPosts | null>;
 }

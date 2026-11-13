@@ -2,10 +2,9 @@ import type { Types } from 'mongoose';
 import { injectable } from 'tsyringe';
 import { Page } from '../../common/pagination/Page';
 import { PageRequest } from '../../common/pagination/PageRequest';
-import type { PostSummary } from '../../domain/Post';
-import { type RoleSummary, type UserDocument, UserModel, type UserSummary, type UserView, type UserWithRole } from '../../domain/User';
+import { type RoleSummary, type UserDocument, UserModel, type UserView, type UserWithRole } from '../../domain/User';
 import { UserAggregations } from '../aggregations/UserAggregations';
-import type { InterestGroup, NewUser, UserPosts, UserRepository } from '../UserRepository';
+import type { InterestGroup, NewUser, UserRepository } from '../UserRepository';
 
 const ROLE_FIELDS = 'name';
 
@@ -71,12 +70,4 @@ export class MongoUserRepository implements UserRepository {
     return Page.of(result?.data ?? [], result?.total[0]?.count ?? 0, page);
   }
 
-  async findWithPosts(userId: Types.ObjectId, page: PageRequest): Promise<UserPosts | null> {
-    const [row] = await UserModel.aggregate<UserSummary & { posts: PostSummary[]; total: number }>(
-      UserAggregations.userPosts(userId, page.skip, page.limit),
-    ).exec();
-    if (!row) return null;
-    const { posts, total, ...user } = row;
-    return { user, posts: Page.of(posts, total, page) };
-  }
 }

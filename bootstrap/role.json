@@ -9,6 +9,6 @@
     "name": "user",
     "description": "Default role for self-registered accounts",
     "system": true,
-    "permissions": ["notes.manage_own", "posts.create"]
+    "permissions": ["notes.manage_own"]
   }
 ]

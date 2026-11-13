@@ -16,8 +16,6 @@ export function userRoutes(): Router {
 
   const { USERS_READ, USERS_MANAGE } = PermissionKey;
   router.get('/interests', authorize(USERS_READ), handle((req, res) => controller.interests(req, res)));
-  // Posts are public, so any authenticated user may list one user's posts.
-  router.get('/:id/posts', handle((req, res) => controller.posts(req, res)));
   router.get('/', authorize(USERS_READ, USERS_MANAGE), handle((req, res) => controller.list(req, res)));
   router.post('/', authorize(USERS_MANAGE), validateBody(CreateUserDto), handle((req, res) => controller.create(req, res)));
   router.get('/:id', authorize(USERS_READ, USERS_MANAGE), handle((req, res) => controller.get(req, res)));

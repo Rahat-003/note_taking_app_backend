@@ -11,10 +11,9 @@ import type { UserDocument, UserView, UserWithRole } from '../../domain/User';
 import type { CreateUserDto } from '../../dto/user/CreateUserDto';
 import type { UpdateUserDto } from '../../dto/user/UpdateUserDto';
 import type { NoteRepository } from '../../repositories/NoteRepository';
-import type { PostRepository } from '../../repositories/PostRepository';
 import type { RoleRepository } from '../../repositories/RoleRepository';
 import type { UserLabelRepository } from '../../repositories/UserLabelRepository';
-import type { InterestGroup, UserPosts, UserRepository } from '../../repositories/UserRepository';
+import type { InterestGroup, UserRepository } from '../../repositories/UserRepository';
 import type { AuthorizationService } from '../AuthorizationService';
 import type { Principal } from '../Principal';
 import type { UserService } from '../UserService';
@@ -25,7 +24,6 @@ export class UserServiceImpl implements UserService {
     @inject(Tokens.UserRepository) private readonly users: UserRepository,
     @inject(Tokens.RoleRepository) private readonly roles: RoleRepository,
     @inject(Tokens.NoteRepository) private readonly notes: NoteRepository,
-    @inject(Tokens.PostRepository) private readonly posts: PostRepository,
     @inject(Tokens.UserCategoryRepository) private readonly userCategories: UserLabelRepository,
     @inject(Tokens.UserTagRepository) private readonly userTags: UserLabelRepository,
     @inject(Tokens.AuthorizationService) private readonly authorization: AuthorizationService,
@@ -33,12 +31,6 @@ export class UserServiceImpl implements UserService {
 
   groupByInterest(interest: string, page: PageRequest): Promise<Page<InterestGroup>> {
     return this.users.groupByInterest(interest.trim().toLowerCase(), page);
-  }
-
-  async getPosts(userId: string, page: PageRequest): Promise<UserPosts> {
-    const result = await this.users.findWithPosts(ObjectIds.parse(userId), page);
-    if (!result) throw new NotFoundException('User not found');
-    return result;
   }
 
   list(page: PageRequest): Promise<Page<UserView>> {
@@ -75,10 +67,9 @@ export class UserServiceImpl implements UserService {
   async delete(principal: Principal, userId: string): Promise<void> {
     const user = await this.loadManageableUser(principal, userId);
     await this.users.deleteById(user._id);
-    // Cascade: { user_id: 1, _id: -1 } on notes and on posts serve these filters.
+    // Cascade: the user_id-prefixed indexes on notes, user_categories and user_tags serve these filters.
     await Promise.all([
       this.notes.deleteByUser(user._id),
-      this.posts.deleteByUser(user._id),
       this.userCategories.deleteByUser(user._id),
       this.userTags.deleteByUser(user._id),
     ]);

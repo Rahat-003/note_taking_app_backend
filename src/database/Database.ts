@@ -3,7 +3,6 @@ import { singleton } from 'tsyringe';
 import { CategoryModel } from '../domain/Category';
 import { NoteModel } from '../domain/Note';
 import { PermissionModel } from '../domain/Permission';
-import { PostModel } from '../domain/Post';
 import { RoleModel } from '../domain/Role';
 import { RolePermissionModel } from '../domain/RolePermission';
 import { TagModel } from '../domain/Tag';
@@ -16,7 +15,6 @@ export class Database {
   static readonly models = [
     UserModel,
     NoteModel,
-    PostModel,
     RoleModel,
     PermissionModel,
     RolePermissionModel,

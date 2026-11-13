@@ -2,7 +2,8 @@ import { type HydratedDocument, Schema, Types, model } from 'mongoose';
 import type { LabelSummary } from './Label';
 
 /** Notes list sort keys. */
-export const NOTE_SORT_FIELDS = ['createdAt', 'updatedAt'] as const;
+// archivedAt orders the archive (one user's archived notes) only.
+export const NOTE_SORT_FIELDS = ['createdAt', 'updatedAt', 'archivedAt'] as const;
 export type NoteSortField = (typeof NOTE_SORT_FIELDS)[number];
 
 export interface NoteEntity {
@@ -13,6 +14,8 @@ export interface NoteEntity {
   content: string;
   /** Archived notes are kept but left out of the notes list unless asked for (?isArchived=). */
   isArchived: boolean;
+  /** When the note was archived; null when it is not archived. Orders the archive, most recently archived first. */
+  archivedAt: Date | null;
   /** When the note was pinned; null when it is not pinned. Pinned notes come first in their owner's list. */
   pinned_at: Date | null;
   /** Foreign key to categories._id (optional). */
@@ -40,6 +43,7 @@ const noteSchema = new Schema<NoteEntity>(
     title: { type: String, required: true, trim: true, maxlength: 200 },
     content: { type: String, default: '', maxlength: 20000 },
     isArchived: { type: Boolean, default: false, required: true },
+    archivedAt: { type: Date, default: null },
     pinned_at: { type: Date, default: null },
     category_id: { type: Schema.Types.ObjectId, ref: 'Category' },
     tag_ids: { type: [{ type: Schema.Types.ObjectId, ref: 'Tag' }], default: [] },
@@ -60,6 +64,9 @@ noteSchema.index({ updatedAt: -1 });
 // "My notes" in one category / with one tag (?category_id= / ?tag_id=), newest first, and their counts.
 noteSchema.index({ user_id: 1, category_id: 1, pinned_at: -1, _id: -1 });
 noteSchema.index({ user_id: 1, tag_ids: 1, pinned_at: -1, _id: -1 });
+// The archive: one user's archived notes, most recently archived first, and its count. Partial, so it
+// holds archived notes only and stays small; queries must include isArchived: true to use it.
+noteSchema.index({ user_id: 1, archivedAt: -1, _id: -1 }, { partialFilterExpression: { isArchived: true } });
 // Search by title and content (?q=). Word-based: case-insensitive, with English stemming.
 noteSchema.index({ title: 'text', content: 'text' });
 

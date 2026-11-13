@@ -10,7 +10,6 @@ import { Migrator } from '../database/Migrator';
 import { CategoryModel } from '../domain/Category';
 import { NoteModel } from '../domain/Note';
 import { PermissionModel } from '../domain/Permission';
-import { PostModel } from '../domain/Post';
 import { RoleModel } from '../domain/Role';
 import { RolePermissionModel } from '../domain/RolePermission';
 import { TagModel } from '../domain/Tag';
@@ -66,6 +65,7 @@ async function fillSampleData() {
         title: `n${i} ${words[(n + i) % words.length]}`,
         content: `about ${words[(n + i + 1) % words.length]}`,
         isArchived: i % 4 === 0,
+        archivedAt: i % 4 === 0 ? new Date(Date.now() - (n * 5 + i) * 1000) : null,
         pinned_at: i === 1 ? new Date(Date.now() - n * 1000) : null,
         category_id: categories[i % words.length]!._id,
         tag_ids: [tags[(n + i) % words.length]!._id],
@@ -84,9 +84,6 @@ async function fillSampleData() {
   };
   await UserCategoryModel.insertMany(count('category_id', (note) => [note.category_id]));
   await UserTagModel.insertMany(count('tag_id', (note) => note.tag_ids));
-  await PostModel.insertMany(
-    users.flatMap((u) => Array.from({ length: 3 }, (_, i) => ({ user_id: u._id, title: `p${i}`, body: 'b' }))),
-  );
   return users[0]!;
 }
 
@@ -101,7 +98,6 @@ async function main(): Promise<void> {
 
     const user = await fillSampleData();
     const note = await NoteModel.findOne({ user_id: user._id }).orFail();
-    const post = await PostModel.findOne({ user_id: user._id }).orFail();
     const [skip, limit] = [0, 20];
     const stats = 'executionStats' as const;
 
@@ -130,6 +126,8 @@ async function main(): Promise<void> {
     const tag = await TagModel.findOne({ name: 'meeting' }).orFail();
     await report('my notes (default: not archived)', NoteModel.find({ ...mine, isArchived: false }).sort({ pinned_at: -1, _id: -1 }).limit(limit).explain(stats));
     await report('my notes: ?isArchived=true', NoteModel.find({ ...mine, isArchived: true }).sort({ pinned_at: -1, _id: -1 }).limit(limit).explain(stats));
+    await report('archive: sort archivedAt desc', NoteModel.find({ ...mine, isArchived: true }).sort({ archivedAt: -1, _id: -1 }).limit(limit).explain(stats));
+    await report('archive count', NoteModel.collection.aggregate([{ $match: { ...mine, isArchived: true } }, { $count: 'n' }]).explain(stats));
     await report('my notes: ?category_id', NoteModel.find({ ...mine, category_id: category._id }).sort({ pinned_at: -1, _id: -1 }).limit(limit).explain(stats));
     await report('my notes: ?category_id count', NoteModel.collection.aggregate([{ $match: { ...mine, category_id: category._id } }, { $count: 'n' }]).explain(stats));
     await report('my notes: ?tag_id', NoteModel.find({ ...mine, tag_ids: tag._id }).sort({ pinned_at: -1, _id: -1 }).limit(limit).explain(stats));
@@ -142,9 +140,6 @@ async function main(): Promise<void> {
     await report('all notes: search ?q=meeting', NoteModel.find({ $text: { $search: 'meeting' } }).sort({ _id: -1 }).limit(limit).explain(stats));
     await report('all notes: ?isArchived count (hint _id)', NoteModel.collection.aggregate([{ $match: { isArchived: true } }, { $count: 'n' }], { hint: { _id: 1 } }).explain(stats));
     await report('GET note: findOne({_id, user_id})', NoteModel.findOne({ _id: note._id, user_id: user._id }).explain(stats));
-    await report('posts feed: sort _id desc', PostModel.find().sort({ _id: -1 }).limit(limit).explain(stats));
-    await report('GET post: findById', PostModel.findById(post._id).explain(stats));
-    await report('cascade delete posts: {user_id}', PostModel.find({ user_id: user._id }).explain(stats));
     await report('permissions list: sort key', PermissionModel.find().sort({ key: 1 }).limit(limit).explain(stats));
     await report('role by name', RoleModel.findOne({ name: 'user' }).explain(stats));
     await report('roles list: sort name', RoleModel.find().sort({ name: 1 }).limit(limit).explain(stats));
@@ -157,7 +152,6 @@ async function main(): Promise<void> {
       'Scenario 1: group by interests (?interest=chess)',
       UserModel.aggregate(UserAggregations.usersByInterest('chess', skip, limit)).explain(stats),
     );
-    await report('Scenario 2: user posts ($lookup)', UserModel.aggregate(UserAggregations.userPosts(user._id, skip, limit)).explain(stats));
   } finally {
     await database.drop();
     await database.disconnect();

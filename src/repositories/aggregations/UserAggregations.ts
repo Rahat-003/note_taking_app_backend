@@ -1,4 +1,4 @@
-import type { PipelineStage, Types } from 'mongoose';
+import type { PipelineStage } from 'mongoose';
 
 export class UserAggregations {
   private constructor() {}
@@ -38,40 +38,5 @@ export class UserAggregations {
     );
 
     return pipeline;
-  }
-
-  /**
-   * Scenario 2: all posts of one user via a single pipeline with $lookup.
-   * $match on _id uses the _id index; both lookups use { user_id: 1, _id: -1 } on posts.
-   */
-  static userPosts(userId: Types.ObjectId, skip: number, limit: number): PipelineStage[] {
-    return [
-      { $match: { _id: userId } },
-      { $project: { name: 1, email: 1 } },
-      {
-        $lookup: {
-          from: 'posts',
-          localField: '_id',
-          foreignField: 'user_id',
-          as: 'posts',
-          pipeline: [
-            { $sort: { _id: -1 } },
-            { $skip: skip },
-            { $limit: limit },
-            { $project: { title: 1, body: 1, createdAt: 1, updatedAt: 1 } },
-          ],
-        },
-      },
-      {
-        $lookup: {
-          from: 'posts',
-          localField: '_id',
-          foreignField: 'user_id',
-          as: 'total',
-          pipeline: [{ $count: 'count' }],
-        },
-      },
-      { $set: { total: { $ifNull: [{ $first: '$total.count' }, 0] } } },
-    ];
   }
 }

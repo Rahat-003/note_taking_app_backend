@@ -5,8 +5,6 @@ import catalog from '../../bootstrap/permission.json';
 export enum PermissionKey {
   NOTES_MANAGE_OWN = 'notes.manage_own',
   NOTES_READ_ALL = 'notes.read_all',
-  POSTS_CREATE = 'posts.create',
-  POSTS_DELETE_ANY = 'posts.delete_any',
   USERS_READ = 'users.read',
   USERS_MANAGE = 'users.manage',
   ROLES_MANAGE = 'roles.manage',
