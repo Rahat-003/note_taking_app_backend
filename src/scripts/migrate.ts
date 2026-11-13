@@ -10,7 +10,7 @@ import { Migrator } from '../database/Migrator';
 async function main(command = 'up'): Promise<void> {
   const database = container.resolve(Database);
   const migrator = container.resolve(Migrator);
-  await database.connect(container.resolve(AppConfig).mongoUri);
+  await database.connect(container.resolve(AppConfig).mongoUri, container.resolve(AppConfig).mongoScriptPool);
   try {
     if (command === 'up') {
       const ran = await migrator.migrate();

@@ -38,10 +38,12 @@ repositories uses an index.
 
 ## MongoDB connection pool
 
-The API process keeps one MongoDB connection pool (`src/config/AppConfig.ts` → `mongoose.connect`). All values
-can be overridden by environment variables; docker-compose passes them through.
+The API process keeps one MongoDB connection pool (`src/config/AppConfig.ts` → `mongoose.connect`). Every
+value is read from `backend/.env` at startup; there are no values in code. A missing or invalid one stops startup
+with a message naming it (e.g. `MONGO_MAX_POOL_SIZE must be a whole number ≥ 1, got "abc"`). Docker Compose
+loads the same file into the container (`env_file: .env`), so changing `.env` and restarting is enough.
 
-| Setting (env var) | Default | Why |
+| Setting (`.env` key) | Value in `.env.example` | Why |
 |---|---|---|
 | `maxPoolSize` (`MONGO_MAX_POOL_SIZE`) | 20 | a request uses up to 3 connections at once (auth lookup, then a list and its count in parallel), so about 7 concurrent requests per instance before queuing |
 | `minPoolSize` (`MONGO_MIN_POOL_SIZE`) | 2 | keeps a couple of connections warm, so the first request after idle skips the TCP/handshake cost |

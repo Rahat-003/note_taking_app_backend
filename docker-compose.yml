@@ -20,6 +20,9 @@ services:
     depends_on:
       mongo:
         condition: service_healthy
+    # Every setting in backend/.env reaches the API (e.g. the MONGO_* pool settings);
+    # the values below override it for the container (port, the in-network MongoDB address).
+    env_file: .env
     environment:
       PORT: 3000
       MONGO_URI: mongodb://mongo:27017/secure_notes
