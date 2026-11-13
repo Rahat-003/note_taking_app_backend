@@ -5,6 +5,7 @@ import { NotFoundException } from './common/exceptions/NotFoundException';
 import { AppConfig } from './config/AppConfig';
 import { corsMiddleware } from './middleware/cors';
 import { errorHandler } from './middleware/errorHandler';
+import { docsRoutes } from './docs/docs.routes';
 import { authRoutes } from './routes/auth.routes';
 import { categoryRoutes, tagRoutes } from './routes/label.routes';
 import { noteRoutes } from './routes/note.routes';
@@ -25,6 +26,8 @@ export function createApp(): Express {
   app.use(corsMiddleware(container.resolve(AppConfig).corsOrigins));
   app.use(express.json({ limit: '100kb' }));
 
+  // API docs: Swagger UI at /api/docs, the OpenAPI spec at /api/openapi.json.
+  app.use('/api', docsRoutes());
   app.use('/api/auth', authRoutes());
   app.use('/api/notes', noteRoutes());
   app.use('/api/categories', categoryRoutes());

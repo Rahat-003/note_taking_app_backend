@@ -59,6 +59,11 @@ whose role out-ranks yours.
 
 ## API
 
+**Interactive docs (Swagger UI):** `/api/docs`, live at https://note-taking-app-backend-mu.vercel.app/api/docs,
+and locally at http://localhost:3000/api/docs. The OpenAPI 3 spec is at `/api/openapi.json` (source:
+`src/docs/openapi.ts`). Call **POST /api/auth/login**, then click **Authorize** and paste the `token`.
+
+
 Protected routes need `Authorization: Bearer <token>`. Lists return `{ data, page, limit, total, totalPages }`.
 Errors return `{ error, code, permission?, fields? }`.
 
