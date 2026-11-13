@@ -5,6 +5,7 @@ import { UserController } from '../controllers/UserController';
 import { CreateUserDto } from '../dto/user/CreateUserDto';
 import { UpdateUserDto } from '../dto/user/UpdateUserDto';
 import { UserQueryDto } from '../dto/user/UserQueryDto';
+import { UserStatusDto } from '../dto/user/UserStatusDto';
 import { AuthenticationMiddleware } from '../middleware/AuthenticationMiddleware';
 import { authorize } from '../middleware/authorize';
 import { validateBody } from '../middleware/validateBody';
@@ -26,6 +27,12 @@ export function userRoutes(): Router {
     authorize(USERS_MANAGE),
     validateBody(UpdateUserDto, { strict: true }),
     handle((req, res) => controller.update(req, res)),
+  );
+  router.patch(
+    '/:id/status',
+    authorize(USERS_MANAGE),
+    validateBody(UserStatusDto, { strict: true }),
+    handle((req, res) => controller.setStatus(req, res)),
   );
   router.delete('/:id', authorize(USERS_MANAGE), handle((req, res) => controller.delete(req, res)));
   return router;

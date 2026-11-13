@@ -21,7 +21,8 @@ export class TokenServiceImpl implements TokenService {
     let payload: string | jwt.JwtPayload;
     try {
       payload = jwt.verify(token, this.config.jwtSecret, { algorithms: ['HS256'] });
-    } catch {
+    } catch (err) {
+      if (err instanceof jwt.TokenExpiredError) throw new UnauthorizedException('Your session has expired. Please sign in again.', 'TOKEN_EXPIRED');
       throw new UnauthorizedException('Invalid or expired token');
     }
     const sub = typeof payload === 'string' ? undefined : payload.sub;

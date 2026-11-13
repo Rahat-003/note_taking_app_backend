@@ -11,6 +11,8 @@ export interface UserEntity {
   /** Foreign key to roles._id. */
   role_id: Types.ObjectId;
   interests: string[];
+  /** false: deactivated by an admin; the user cannot sign in and every request with their token is refused. */
+  isActive: boolean;
   /** A short self-description shown on the profile. */
   bio: string;
   createdAt: Date;
@@ -50,6 +52,7 @@ const userSchema = new Schema<UserEntity, UserModelType, UserMethods>(
     role_id: { type: Schema.Types.ObjectId, ref: 'Role', required: true },
     interests: { type: [{ type: String, trim: true, lowercase: true, maxlength: 50 }], default: [] },
     bio: { type: String, trim: true, maxlength: 500, default: '' },
+    isActive: { type: Boolean, default: true, required: true },
   },
   {
     timestamps: true,

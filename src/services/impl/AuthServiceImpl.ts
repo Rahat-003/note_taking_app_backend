@@ -37,12 +37,16 @@ export class AuthServiceImpl implements AuthService {
     if (!user || !(await user.comparePassword(dto.password))) {
       throw new UnauthorizedException('Invalid email or password');
     }
+    // Checked after the password, so the account's state is only revealed to its owner.
+    if (!user.isActive) throw AuthServiceImpl.disabled();
     return this.authResult(user);
   }
 
   async authenticate(token: string): Promise<Principal> {
     const user = await this.users.findByIdWithRole(this.tokens.verify(token));
     if (!user) throw new UnauthorizedException('User no longer exists');
+    // The user is reloaded on every request, so a deactivation applies to the very next API call.
+    if (!user.isActive) throw AuthServiceImpl.disabled();
     const permissions = user.role ? await this.authorization.getPermissions(user.role._id) : [];
     return new Principal(user, new Set(permissions));
   }
@@ -74,6 +78,10 @@ export class AuthServiceImpl implements AuthService {
     }
     user.password = dto.newPassword; // hashed by the pre-save hook
     await this.users.save(user);
+  }
+
+  private static disabled(): UnauthorizedException {
+    return new UnauthorizedException('Your account has been deactivated. Contact an admin to get access again.', 'ACCOUNT_DISABLED');
   }
 
   private async authResult(user: UserDocument): Promise<AuthResult> {

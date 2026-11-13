@@ -4,6 +4,7 @@ import { Tokens } from '../common/Tokens';
 import type { CreateUserDto } from '../dto/user/CreateUserDto';
 import type { UpdateUserDto } from '../dto/user/UpdateUserDto';
 import type { UserQueryDto } from '../dto/user/UserQueryDto';
+import type { UserStatusDto } from '../dto/user/UserStatusDto';
 import type { UserService } from '../services/UserService';
 import { BaseController } from './BaseController';
 
@@ -33,6 +34,10 @@ export class UserController extends BaseController {
 
   async update(req: Request, res: Response): Promise<void> {
     res.json(await this.users.update(this.principal(req), this.param(req, 'id'), this.body<UpdateUserDto>(req)));
+  }
+
+  async setStatus(req: Request, res: Response): Promise<void> {
+    res.json(await this.users.setStatus(this.principal(req), this.param(req, 'id'), this.body<UserStatusDto>(req)));
   }
 
   async delete(req: Request, res: Response): Promise<void> {

@@ -10,6 +10,7 @@ import type { RoleEntity } from '../../domain/Role';
 import type { UserDocument, UserView, UserWithRole } from '../../domain/User';
 import type { CreateUserDto } from '../../dto/user/CreateUserDto';
 import type { UpdateUserDto } from '../../dto/user/UpdateUserDto';
+import type { UserStatusDto } from '../../dto/user/UserStatusDto';
 import type { NoteRepository } from '../../repositories/NoteRepository';
 import type { RoleRepository } from '../../repositories/RoleRepository';
 import type { UserLabelRepository } from '../../repositories/UserLabelRepository';
@@ -60,6 +61,13 @@ export class UserServiceImpl implements UserService {
     const { role_id: roleId, ...fields } = dto;
     if (roleId) user.role_id = (await this.resolveAssignableRole(principal, roleId))._id;
     user.set(fields);
+    await this.users.save(user);
+    return this.users.withRole(user);
+  }
+
+  async setStatus(principal: Principal, userId: string, dto: UserStatusDto): Promise<UserWithRole> {
+    const user = await this.loadManageableUser(principal, userId);
+    user.isActive = dto.isActive;
     await this.users.save(user);
     return this.users.withRole(user);
   }
