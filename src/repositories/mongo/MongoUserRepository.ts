@@ -11,12 +11,11 @@ const ROLE_FIELDS = 'name';
 const escapeRegex = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
- * Users whose name has a word starting with `search`, or whose email starts with it (emails are stored
- * lowercase). Each $or branch is matched on its own index's keys, so no collection scan.
+ * Users whose email starts with `search` (emails are stored lowercase). An anchored, case-sensitive prefix
+ * regex is a bounded range scan on the { email: 1 } index, which also returns the matches in email order.
  */
 export function userSearchFilter(search: string): FilterQuery<UserEntity> {
-  const term = escapeRegex(search.trim());
-  return { $or: [{ name: { $regex: `(^|\\s)${term}`, $options: 'i' } }, { email: { $regex: `^${term.toLowerCase()}` } }] };
+  return { email: { $regex: `^${escapeRegex(search.trim().toLowerCase())}` } };
 }
 
 @injectable()
@@ -45,7 +44,7 @@ export class MongoUserRepository implements UserRepository {
     const filter = search ? userSearchFilter(search) : {};
     const [data, total] = await Promise.all([
       UserModel.find(filter)
-        .sort(search ? { name: 1, _id: 1 } : { _id: -1 })
+        .sort(search ? { email: 1 } : { _id: -1 })
         .skip(page.skip)
         .limit(page.limit)
         .select('-__v')

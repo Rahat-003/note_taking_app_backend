@@ -61,9 +61,8 @@ noteSchema.index({ user_id: 1, pinned_at: -1, _id: -1 });
 noteSchema.index({ user_id: 1, pinned_at: -1, updatedAt: -1 });
 // Admin "all notes" sorted by updated date.
 noteSchema.index({ updatedAt: -1 });
-// "My notes" in one category / with one tag (?category_id= / ?tag_id=), newest first, and their counts.
-noteSchema.index({ user_id: 1, category_id: 1, pinned_at: -1, _id: -1 });
-noteSchema.index({ user_id: 1, tag_ids: 1, pinned_at: -1, _id: -1 });
+// Category / tag filters (?category_id= / ?tag_id=) have no index of their own: the user_id indexes above
+// narrow the scan to one user's notes, and the filter is applied to those (no collection scan).
 // The archive: one user's archived notes, most recently archived first, and its count. Partial, so it
 // holds archived notes only and stays small; queries must include isArchived: true to use it.
 noteSchema.index({ user_id: 1, archivedAt: -1, _id: -1 }, { partialFilterExpression: { isArchived: true } });

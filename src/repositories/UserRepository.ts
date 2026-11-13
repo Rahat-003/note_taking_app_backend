@@ -30,7 +30,7 @@ export interface UserRepository {
   existsByRole(roleId: Types.ObjectId): Promise<boolean>;
   /**
    * Without a search: newest first via the _id index, total from collection metadata.
-   * With one: name (word start) or email (prefix), sorted by name: { name: 1 } and { email: 1 } serve the $or.
+   * With one: email prefix, in email order, both from the { email: 1 } index.
    */
   findAll(page: PageRequest, search?: string): Promise<Page<UserView>>;
   create(user: NewUser): Promise<UserDocument>;

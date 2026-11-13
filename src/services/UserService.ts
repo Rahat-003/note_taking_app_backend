@@ -9,7 +9,7 @@ import type { Principal } from './Principal';
 
 export interface UserService {
   groupByInterest(interest: string, page: PageRequest): Promise<Page<InterestGroup>>;
-  /** search: name word start or email prefix. */
+  /** search: email prefix. */
   list(page: PageRequest, search?: string): Promise<Page<UserView>>;
   get(userId: string): Promise<UserWithRole>;
   create(principal: Principal, dto: CreateUserDto): Promise<UserWithRole>;
