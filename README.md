@@ -13,6 +13,17 @@ npm run explain                 # every query's index plan; flags any COLLSCAN
 
 Without Docker: `npm install`, `npm run setup` (migrate and seed), then `npm run dev`.
 
+## Deploy to Vercel
+
+The API runs as one serverless function (`api/index.ts`, routed by `vercel.json`); the frontend is a static
+Vite build. The database is MongoDB Atlas.
+
+1. **Atlas:** create a free cluster, a database user, and allow network access from `0.0.0.0/0` (Vercel has no fixed IPs).
+2. **Seed it once** from your machine: `MONGO_URI="<atlas uri>/secure_notes" npm run setup` (migrations and admin). Repeat after adding a migration.
+3. **Backend:** import the backend repo in Vercel. Set every key from `.env.example` as an environment variable: `MONGO_URI` is the Atlas URI, and `MONGO_MAX_POOL_SIZE=5` suits serverless. Set `CORS_ORIGINS` to the frontend URL once you have it.
+4. **Frontend:** import the frontend repo and set `VITE_API_URL` to the backend URL.
+5. **CORS:** put the frontend URL into the backend's `CORS_ORIGINS` and redeploy the backend.
+
 ## Requirements
 
 | Requirement | How |

@@ -17,6 +17,9 @@ export function createApp(): Express {
   const app = express();
 
   app.disable('x-powered-by');
+  // Behind Vercel's proxy the client IP is in X-Forwarded-For; trust that one hop so the rate limiter
+  // counts real clients (and express-rate-limit doesn't reject the header).
+  if (process.env.VERCEL) app.set('trust proxy', 1);
   app.use(helmet());
   // Before the routes, so preflight (OPTIONS) requests are answered here.
   app.use(corsMiddleware(container.resolve(AppConfig).corsOrigins));
