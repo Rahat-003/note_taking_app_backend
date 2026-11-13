@@ -12,7 +12,7 @@
     "bootstrap": "tsx bootstrap/index.ts",
     "setup": "npm run migrate && npm run bootstrap",
     "explain": "tsx src/scripts/explain.ts",
-    "vercel-build": "tsc -p tsconfig.build.json && mkdir -p public"
+    "vercel-build": "tsc -p tsconfig.build.json && mkdir -p public && printf 'User-agent: *\\nDisallow: /\\n' > public/robots.txt"
   },
   "keywords": [],
   "author": "",
@@ -41,6 +41,6 @@
     "typescript": "^7.0.2"
   },
   "engines": {
-    "node": ">=20"
+    "node": "22.x"
   }
 }
