@@ -1,15 +1,15 @@
-// Vercel serverless entry: every request (see vercel.json rewrites) lands here and is handed to the same
-// Express app as `npm start`. A warm function instance reuses its MongoDB connection pool; a cold one
-// connects once and every request it handles waits for that.
+// Vercel serverless handler, compiled by tsc to dist/src/vercel.js and loaded by api/index.js. Every request
+// is handed to the same Express app as `npm start`. A warm function instance reuses its MongoDB connection
+// pool; a cold one connects once and every request it handles waits for that.
 //
 // Migrations and the bootstrap seed do not run here. Run them once against the production database
 // before the first deploy (and after adding a migration):  MONGO_URI=<atlas uri> npm run setup
 import 'reflect-metadata';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { container } from '../src/container';
-import { createApp } from '../src/app';
-import { AppConfig } from '../src/config/AppConfig';
-import { Database } from '../src/database/Database';
+import { container } from './container';
+import { createApp } from './app';
+import { AppConfig } from './config/AppConfig';
+import { Database } from './database/Database';
 
 const config = container.resolve(AppConfig);
 const app = createApp();

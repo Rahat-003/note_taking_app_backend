@@ -15,8 +15,9 @@ Without Docker: `npm install`, `npm run setup` (migrate and seed), then `npm run
 
 ## Deploy to Vercel
 
-The API runs as one serverless function (`api/index.ts`, routed by `vercel.json`); the frontend is a static
-Vite build. The database is MongoDB Atlas.
+The API runs as one serverless function. `vercel.json` builds with the project's own `tsc` (`npm run vercel-build`)
+and routes every request to `api/index.js`, which loads the compiled `src/vercel.ts` handler. The frontend is a
+static Vite build. The database is MongoDB Atlas. Use the **Other** framework preset; `vercel.json` sets the rest.
 
 1. **Atlas:** create a free cluster, a database user, and allow network access from `0.0.0.0/0` (Vercel has no fixed IPs).
 2. **Seed it once** from your machine: `MONGO_URI="<atlas uri>/secure_notes" npm run setup` (migrations and admin). Repeat after adding a migration.

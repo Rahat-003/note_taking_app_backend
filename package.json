@@ -11,7 +11,8 @@
     "migrate": "tsx src/scripts/migrate.ts",
     "bootstrap": "tsx bootstrap/index.ts",
     "setup": "npm run migrate && npm run bootstrap",
-    "explain": "tsx src/scripts/explain.ts"
+    "explain": "tsx src/scripts/explain.ts",
+    "vercel-build": "tsc -p tsconfig.build.json && mkdir -p public"
   },
   "keywords": [],
   "author": "",
