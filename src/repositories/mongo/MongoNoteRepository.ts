@@ -66,10 +66,6 @@ export class MongoNoteRepository implements NoteRepository {
     return NoteModel.findOneAndDelete({ _id: id, user_id: userId }).lean<NoteEntity>().exec();
   }
 
-  async deleteByUser(userId: Types.ObjectId): Promise<void> {
-    await NoteModel.deleteMany({ user_id: userId }).exec();
-  }
-
   private count(filter: FilterQuery<NoteEntity>, criteria: NoteSearchCriteria): Promise<number> {
     if (!Object.keys(filter).length) return NoteModel.estimatedDocumentCount().exec(); // metadata, no scan
     // With a user or text condition the planner picks the matching index. A cross-user filter on

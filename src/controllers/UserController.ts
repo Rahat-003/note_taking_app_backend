@@ -39,9 +39,4 @@ export class UserController extends BaseController {
   async setStatus(req: Request, res: Response): Promise<void> {
     res.json(await this.users.setStatus(this.principal(req), this.param(req, 'id'), this.body<UserStatusDto>(req)));
   }
-
-  async delete(req: Request, res: Response): Promise<void> {
-    await this.users.delete(this.principal(req), this.param(req, 'id'));
-    res.status(204).end();
-  }
 }

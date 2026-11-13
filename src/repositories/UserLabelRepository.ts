@@ -9,5 +9,4 @@ export interface UserLabelRepository {
   findByUser(userId: Types.ObjectId, page: PageRequest): Promise<Page<UserLabel>>;
   /** Adds `delta` to the user's note count of each label; a label whose count reaches 0 is removed. */
   adjust(userId: Types.ObjectId, labelIds: readonly Types.ObjectId[], delta: 1 | -1): Promise<void>;
-  deleteByUser(userId: Types.ObjectId): Promise<void>;
 }

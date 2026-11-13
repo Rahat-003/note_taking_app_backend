@@ -34,6 +34,5 @@ export function userRoutes(): Router {
     validateBody(UserStatusDto, { strict: true }),
     handle((req, res) => controller.setStatus(req, res)),
   );
-  router.delete('/:id', authorize(USERS_MANAGE), handle((req, res) => controller.delete(req, res)));
   return router;
 }

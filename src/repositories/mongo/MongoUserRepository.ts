@@ -71,10 +71,6 @@ export class MongoUserRepository implements UserRepository {
     return (await user.populate('role', ROLE_FIELDS)) as unknown as UserWithRole;
   }
 
-  async deleteById(id: Types.ObjectId): Promise<void> {
-    await UserModel.deleteOne({ _id: id }).exec();
-  }
-
   async groupByInterest(interest: string, page: PageRequest): Promise<Page<InterestGroup>> {
     const [result] = await UserModel.aggregate<{ data: InterestGroup[]; total: { count: number }[] }>(
       UserAggregations.usersByInterest(interest, page.skip, page.limit),

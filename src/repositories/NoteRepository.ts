@@ -61,6 +61,4 @@ export interface NoteRepository {
   updateOwned(id: Types.ObjectId, userId: Types.ObjectId, changes: NoteChanges): Promise<NoteDocument | null>;
   /** _id index; returns the deleted note, or null when no note of this user matched. */
   deleteOwned(id: Types.ObjectId, userId: Types.ObjectId): Promise<NoteEntity | null>;
-  /** { user_id: 1, _id: -1 }. */
-  deleteByUser(userId: Types.ObjectId): Promise<void>;
 }

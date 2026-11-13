@@ -37,7 +37,6 @@ export interface UserRepository {
   /** save() so a changed password goes through the hashing hook. */
   save(user: UserDocument | UserWithRole): Promise<void>;
   withRole(user: UserDocument): Promise<UserWithRole>;
-  deleteById(id: Types.ObjectId): Promise<void>;
   /** Aggregation Scenario 1: a single aggregate() on the { interests: 1 } multikey index. */
   groupByInterest(interest: string, page: PageRequest): Promise<Page<InterestGroup>>;
 }
